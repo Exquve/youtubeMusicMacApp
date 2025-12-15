@@ -1,0 +1,822 @@
+/*
+ * YouTube Music - Liquid Glass Theme
+ * Modern glassmorphism design for macOS
+ */
+
+/* ============================================
+   CSS VARIABLES - Easy Customization
+   ============================================ */
+:root {
+  /* Primary Colors */
+  --lg-primary: #ff6b6b;
+  --lg-primary-dark: #ee5a5a;
+  --lg-accent: #4ecdc4;
+  --lg-accent-secondary: #a78bfa;
+
+  /* Background Colors */
+  --lg-bg-dark: #0a0a0a;
+  --lg-bg-medium: #121212;
+  --lg-bg-light: #1a1a1a;
+  --lg-bg-elevated: #242424;
+
+  /* Glass Effect */
+  --lg-glass-bg: rgba(255, 255, 255, 0.03);
+  --lg-glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --lg-glass-border: rgba(255, 255, 255, 0.08);
+  --lg-glass-blur: 20px;
+
+  /* Text Colors */
+  --lg-text-primary: #ffffff;
+  --lg-text-secondary: rgba(255, 255, 255, 0.7);
+  --lg-text-muted: rgba(255, 255, 255, 0.4);
+
+  /* Shadows */
+  --lg-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --lg-shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --lg-shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.5);
+
+  /* Animation */
+  --lg-transition-fast: 0.15s ease;
+  --lg-transition-normal: 0.25s ease;
+  --lg-transition-slow: 0.4s ease;
+
+  /* Border Radius */
+  --lg-radius-sm: 8px;
+  --lg-radius-md: 12px;
+  --lg-radius-lg: 16px;
+  --lg-radius-xl: 24px;
+}
+
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+
+/* Hide scrollbars but keep functionality */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Base font improvements */
+body,
+html {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  background: var(--lg-bg-dark) !important;
+}
+
+/* ============================================
+   TOP BAR / HEADER - Drag Area for macOS
+   ============================================ */
+
+ytmusic-nav-bar {
+  background: transparent !important;
+  -webkit-app-region: drag;
+  padding-left: 80px !important;
+  /* Space for traffic lights */
+}
+
+ytmusic-nav-bar * {
+  -webkit-app-region: no-drag;
+}
+
+/* Search bar glass effect */
+ytmusic-search-box {
+  background: var(--lg-glass-bg) !important;
+  backdrop-filter: blur(var(--lg-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--lg-glass-blur)) !important;
+  border: 1px solid var(--lg-glass-border) !important;
+  border-radius: var(--lg-radius-xl) !important;
+  transition: all var(--lg-transition-normal) !important;
+}
+
+ytmusic-search-box:focus-within {
+  background: var(--lg-glass-bg-hover) !important;
+  border-color: var(--lg-primary) !important;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2) !important;
+}
+
+/* ============================================
+   SIDEBAR / LEFT NAVIGATION
+   ============================================ */
+
+ytmusic-guide-section-renderer {
+  background: transparent !important;
+}
+
+/* Sidebar items */
+ytmusic-guide-entry-renderer {
+  margin: 4px 8px !important;
+  border-radius: var(--lg-radius-md) !important;
+  transition: all var(--lg-transition-fast) !important;
+}
+
+ytmusic-guide-entry-renderer:hover {
+  background: var(--lg-glass-bg-hover) !important;
+}
+
+ytmusic-guide-entry-renderer[active] {
+  background: linear-gradient(135deg, var(--lg-primary), var(--lg-accent-secondary)) !important;
+}
+
+ytmusic-guide-entry-renderer[active] tp-yt-paper-item {
+  color: white !important;
+}
+
+/* Sidebar icons */
+ytmusic-guide-entry-renderer .guide-icon {
+  opacity: 0.8;
+  transition: opacity var(--lg-transition-fast) !important;
+}
+
+ytmusic-guide-entry-renderer:hover .guide-icon {
+  opacity: 1;
+}
+
+/* ============================================
+   CONTENT AREA
+   ============================================ */
+
+/* Main background */
+#content.ytmusic-app,
+ytmusic-browse-response {
+  background: var(--lg-bg-dark) !important;
+}
+
+/* Section headers */
+.title.ytmusic-shelf-renderer,
+.title.ytmusic-carousel-shelf-renderer {
+  font-weight: 600 !important;
+  font-size: 1.4em !important;
+  letter-spacing: -0.02em !important;
+  color: var(--lg-text-primary) !important;
+}
+
+/* Cards - Album/Playlist tiles */
+ytmusic-two-row-item-renderer,
+ytmusic-responsive-list-item-renderer {
+  background: var(--lg-glass-bg) !important;
+  backdrop-filter: blur(var(--lg-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--lg-glass-blur)) !important;
+  border: 1px solid var(--lg-glass-border) !important;
+  border-radius: var(--lg-radius-lg) !important;
+  transition: all var(--lg-transition-normal) !important;
+  overflow: hidden !important;
+}
+
+ytmusic-two-row-item-renderer:hover,
+ytmusic-responsive-list-item-renderer:hover {
+  background: var(--lg-glass-bg-hover) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: var(--lg-shadow-md) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Album art */
+ytmusic-thumbnail-renderer img,
+.image.ytmusic-two-row-item-renderer img {
+  border-radius: var(--lg-radius-md) !important;
+  transition: transform var(--lg-transition-normal) !important;
+}
+
+ytmusic-two-row-item-renderer:hover img {
+  transform: scale(1.05) !important;
+}
+
+/* ============================================
+   PLAYER BAR - Premium Modern Design
+   ============================================ */
+
+/* Main player bar container - Dark/Transparent */
+ytmusic-player-bar {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(30px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 12px 20px !important;
+}
+
+/* Now playing section layout */
+.middle-controls.ytmusic-player-bar {
+  background: transparent !important;
+}
+
+/* Content info wrapper */
+.content-info-wrapper.ytmusic-player-bar {
+  gap: 16px !important;
+}
+
+/* ============================================
+   ALBUM ART - Enhanced with Glow
+   ============================================ */
+
+.thumbnail.ytmusic-player-bar,
+.image-wrapper.ytmusic-player-bar {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.thumbnail.ytmusic-player-bar:hover,
+.image-wrapper.ytmusic-player-bar:hover {
+  transform: scale(1.08) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.7),
+    0 0 30px rgba(255, 107, 107, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+}
+
+.thumbnail.ytmusic-player-bar img,
+.image.ytmusic-player-bar img,
+ytmusic-player-bar .image img {
+  border-radius: 10px !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* ============================================
+   SONG INFO - Modern Typography
+   ============================================ */
+
+/* Song title */
+.title.ytmusic-player-bar,
+ytmusic-player-bar .title {
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: -0.02em !important;
+  color: #ffffff !important;
+  line-height: 1.3 !important;
+}
+
+/* Remove pulse animation - cleaner look */
+ytmusic-player-bar .title.ytmusic-player-bar {
+  animation: none !important;
+}
+
+/* Artist/Album name */
+.byline.ytmusic-player-bar,
+ytmusic-player-bar .byline,
+.subtitle.ytmusic-player-bar {
+  color: rgba(255, 255, 255, 0.55) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.byline.ytmusic-player-bar a,
+ytmusic-player-bar .byline a {
+  color: rgba(255, 255, 255, 0.55) !important;
+  transition: color 0.2s ease !important;
+}
+
+.byline.ytmusic-player-bar a:hover,
+ytmusic-player-bar .byline a:hover {
+  color: var(--lg-primary) !important;
+}
+
+/* ============================================
+   PLAYER CONTROLS - Premium Styling
+   ============================================ */
+
+/* Control buttons container */
+.middle-controls-buttons.ytmusic-player-bar {
+  gap: 4px !important;
+}
+
+/* Base control button style */
+tp-yt-paper-icon-button.ytmusic-player-bar,
+ytmusic-player-bar tp-yt-paper-icon-button,
+.toggle-player-page-button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+tp-yt-paper-icon-button.ytmusic-player-bar:hover,
+ytmusic-player-bar tp-yt-paper-icon-button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: scale(1.1) !important;
+  color: #ffffff !important;
+}
+
+/* Previous button */
+.previous-button.ytmusic-player-bar tp-yt-paper-icon-button,
+ytmusic-player-bar .previous-button tp-yt-paper-icon-button {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* Next button */
+.next-button.ytmusic-player-bar tp-yt-paper-icon-button,
+ytmusic-player-bar .next-button tp-yt-paper-icon-button {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* ============================================
+   PLAY/PAUSE BUTTON - Hero Element
+   ============================================ */
+
+#play-pause-button.ytmusic-player-bar tp-yt-paper-icon-button,
+ytmusic-player-bar #play-pause-button tp-yt-paper-icon-button,
+.play-pause-button tp-yt-paper-icon-button {
+  background: linear-gradient(145deg,
+      #ff6b6b 0%,
+      #ff5252 50%,
+      #e04848 100%) !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50% !important;
+  box-shadow:
+    0 4px 20px rgba(255, 82, 82, 0.5),
+    0 2px 8px rgba(255, 82, 82, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: none !important;
+}
+
+#play-pause-button.ytmusic-player-bar tp-yt-paper-icon-button:hover,
+ytmusic-player-bar #play-pause-button tp-yt-paper-icon-button:hover {
+  transform: scale(1.1) !important;
+  box-shadow:
+    0 6px 30px rgba(255, 82, 82, 0.6),
+    0 3px 12px rgba(255, 82, 82, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  background: linear-gradient(145deg,
+      #ff7b7b 0%,
+      #ff6262 50%,
+      #e85858 100%) !important;
+}
+
+#play-pause-button.ytmusic-player-bar tp-yt-paper-icon-button:active {
+  transform: scale(0.95) !important;
+}
+
+/* Play/Pause icon */
+#play-pause-button.ytmusic-player-bar iron-icon,
+ytmusic-player-bar #play-pause-button iron-icon {
+  color: #ffffff !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) !important;
+}
+
+/* ============================================
+   PROGRESS BAR - Clean Minimal Design
+   ============================================ */
+
+/* Progress bar base styling */
+ytmusic-player-bar tp-yt-paper-slider#progress-bar,
+ytmusic-player-bar #progress-bar,
+#progress-bar.ytmusic-player-bar {
+  --paper-slider-height: 4px !important;
+  --paper-slider-active-color: #ff5252 !important;
+  --paper-slider-knob-color: #ff5252 !important;
+  --paper-slider-container-color: rgba(255, 255, 255, 0.2) !important;
+  height: 24px !important;
+  cursor: pointer !important;
+}
+
+/* Filled progress - solid color */
+ytmusic-player-bar #progress-bar #primaryProgress,
+#progress-bar.ytmusic-player-bar #primaryProgress,
+tp-yt-paper-slider#progress-bar #primaryProgress {
+  background: #ff5252 !important;
+  border-radius: 2px !important;
+}
+
+/* Knob - simple clean design */
+ytmusic-player-bar #progress-bar .slider-knob-inner,
+#progress-bar.ytmusic-player-bar .slider-knob-inner,
+tp-yt-paper-slider#progress-bar .slider-knob-inner {
+  background: #ff5252 !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.15s ease !important;
+}
+
+/* Hover - slightly bigger */
+ytmusic-player-bar #progress-bar:hover .slider-knob-inner {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Time display */
+ytmusic-player-bar .time-info,
+.time-info.ytmusic-player-bar {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* ============================================
+   VOLUME & RIGHT CONTROLS
+   ============================================ */
+
+/* Volume slider */
+#volume-slider.ytmusic-player-bar,
+ytmusic-player-bar #volume-slider {
+  --paper-slider-active-color: rgba(255, 255, 255, 0.8) !important;
+  --paper-slider-knob-color: #ffffff !important;
+  --paper-slider-container-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+#volume-slider.ytmusic-player-bar .slider-knob-inner {
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Right side buttons - Like, options, etc */
+.right-controls-buttons.ytmusic-player-bar tp-yt-paper-icon-button,
+ytmusic-player-bar .right-controls-buttons tp-yt-paper-icon-button {
+  opacity: 0.6 !important;
+  transition: all 0.2s ease !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.right-controls-buttons.ytmusic-player-bar tp-yt-paper-icon-button:hover {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+}
+
+/* Like button when active */
+.like.ytmusic-like-button-renderer[aria-pressed="true"] iron-icon {
+  color: var(--lg-primary) !important;
+  filter: drop-shadow(0 0 8px var(--lg-primary)) !important;
+}
+
+/* Dislike button when active */
+.dislike.ytmusic-like-button-renderer[aria-pressed="true"] iron-icon {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Liked icon - filled heart/thumbs up */
+.right-controls-buttons.ytmusic-player-bar .like.ytmusic-like-button-renderer[aria-pressed="true"] iron-icon {
+  color: var(--lg-primary) !important;
+  filter: drop-shadow(0 0 6px var(--lg-primary)) !important;
+}
+
+/* ============================================
+   LYRICS PANEL - Apple Music Style
+   ============================================ */
+
+/* Full screen player background */
+ytmusic-player-page[player-fullscreened],
+ytmusic-player-page {
+  background: linear-gradient(180deg,
+      rgba(10, 10, 15, 1) 0%,
+      rgba(15, 15, 20, 1) 100%) !important;
+}
+
+/* Lyrics background blur - album art based */
+ytmusic-player-page .background-gradient {
+  filter: blur(100px) saturate(180%) brightness(0.4) !important;
+  opacity: 0.5 !important;
+  transform: scale(1.2) !important;
+}
+
+/* Lyrics container styling */
+ytmusic-description-shelf-renderer,
+.description.ytmusic-description-shelf-renderer {
+  background: transparent !important;
+}
+
+/* ============================================
+   TIMED/SYNCED LYRICS - Current Line Highlight
+   ============================================ */
+
+/* All lyrics lines - base style (dimmed) */
+ytmusic-player-page .lyrics-content,
+ytmusic-player-page [class*="lyrics"],
+.text-lyrics,
+ytmusic-timed-lyrics ytmusic-timed-text-renderer {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif !important;
+  font-size: 32px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 8px 20px !important;
+  cursor: pointer !important;
+}
+
+/* Current/Active lyric line - BRIGHT */
+ytmusic-timed-text-renderer[is-active],
+ytmusic-timed-text-renderer.is-active,
+ytmusic-timed-text-renderer[data-status="active"],
+[class*="lyrics"] [class*="active"],
+.lyrics-line.active,
+.lyrics-line--active {
+  color: #ffffff !important;
+  font-size: 36px !important;
+  text-shadow:
+    0 0 20px rgba(255, 255, 255, 0.5),
+    0 0 40px rgba(255, 255, 255, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  transform: scale(1.02) !important;
+  opacity: 1 !important;
+}
+
+/* Past lyrics - slightly visible */
+ytmusic-timed-text-renderer[is-past],
+ytmusic-timed-text-renderer.is-past,
+ytmusic-timed-text-renderer[data-status="past"] {
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-size: 28px !important;
+}
+
+/* Future lyrics - dim */
+ytmusic-timed-text-renderer:not([is-active]):not([is-past]),
+ytmusic-timed-text-renderer:not(.is-active):not(.is-past) {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Hover effect on lyrics lines */
+ytmusic-timed-text-renderer:hover:not([is-active]) {
+  color: rgba(255, 255, 255, 0.6) !important;
+  transform: scale(1.01) !important;
+}
+
+/* ============================================
+   STATIC LYRICS STYLING
+   ============================================ */
+
+/* Non-timed/static lyrics text */
+.non-expandable.ytmusic-description-shelf-renderer,
+.description.ytmusic-description-shelf-renderer,
+ytmusic-section-list-renderer[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"] {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif !important;
+  font-size: 26px !important;
+  line-height: 1.8 !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+  padding: 40px 60px !important;
+  max-width: 700px !important;
+  margin: 0 auto !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Lyrics wrapper scrolling */
+ytmusic-player-page .content,
+ytmusic-player-page .lyrics-wrapper {
+  scroll-behavior: smooth !important;
+}
+
+/* Animation for lyrics appearing */
+@keyframes lyricsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+ytmusic-timed-text-renderer {
+  animation: lyricsFadeIn 0.3s ease forwards;
+}
+
+/* Lyrics panel header */
+ytmusic-player-page .tab-header {
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  font-size: 12px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ============================================
+   QUEUE PANEL
+   ============================================ */
+
+ytmusic-player-queue {
+  background: rgba(15, 15, 15, 0.95) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border-left: 1px solid var(--lg-glass-border) !important;
+}
+
+ytmusic-player-queue-item {
+  border-radius: var(--lg-radius-sm) !important;
+  margin: 4px 8px !important;
+  transition: all var(--lg-transition-fast) !important;
+}
+
+ytmusic-player-queue-item:hover {
+  background: var(--lg-glass-bg-hover) !important;
+}
+
+ytmusic-player-queue-item[selected] {
+  background: linear-gradient(90deg,
+      rgba(255, 107, 107, 0.2),
+      transparent) !important;
+  border-left: 3px solid var(--lg-primary) !important;
+}
+
+/* ============================================
+   BUTTONS & CHIPS
+   ============================================ */
+
+/* Chips/Tags */
+ytmusic-chip-cloud-chip-renderer {
+  background: var(--lg-glass-bg) !important;
+  border: 1px solid var(--lg-glass-border) !important;
+  border-radius: var(--lg-radius-xl) !important;
+  transition: all var(--lg-transition-fast) !important;
+}
+
+ytmusic-chip-cloud-chip-renderer:hover {
+  background: var(--lg-glass-bg-hover) !important;
+  border-color: var(--lg-primary) !important;
+}
+
+ytmusic-chip-cloud-chip-renderer[is-selected] {
+  background: linear-gradient(135deg, var(--lg-primary), var(--lg-accent-secondary)) !important;
+  border: none !important;
+}
+
+/* Play buttons on hover */
+ytmusic-play-button-renderer button {
+  background: linear-gradient(135deg, var(--lg-primary), var(--lg-accent-secondary)) !important;
+  border-radius: 50% !important;
+  transition: all var(--lg-transition-fast) !important;
+  box-shadow: var(--lg-shadow-sm) !important;
+}
+
+ytmusic-play-button-renderer button:hover {
+  transform: scale(1.1) !important;
+  box-shadow: var(--lg-shadow-md) !important;
+}
+
+/* ============================================
+   CONTEXT MENUS & DIALOGS
+   ============================================ */
+
+tp-yt-paper-dialog,
+ytmusic-menu-popup-renderer,
+tp-yt-paper-listbox {
+  background: rgba(30, 30, 30, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--lg-glass-border) !important;
+  border-radius: var(--lg-radius-lg) !important;
+  box-shadow: var(--lg-shadow-lg) !important;
+}
+
+tp-yt-paper-item:hover {
+  background: var(--lg-glass-bg-hover) !important;
+}
+
+/* ============================================
+   LOADING STATES & SKELETONS
+   ============================================ */
+
+.skeleton-bg {
+  background: linear-gradient(90deg,
+      var(--lg-bg-light) 25%,
+      var(--lg-bg-elevated) 50%,
+      var(--lg-bg-light) 75%) !important;
+  animation: shimmer 1.5s infinite !important;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+/* Smooth fade-in for content */
+ytmusic-carousel-shelf-renderer,
+ytmusic-shelf-renderer {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse animation for now playing */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+ytmusic-player-bar .title.ytmusic-player-bar {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   HIDE UNWANTED ELEMENTS
+   ============================================ */
+
+/* Hide YouTube branding if desired */
+/* ytmusic-logo { display: none !important; } */
+
+/* Hide upgrade button */
+ytmusic-pivot-bar-item-renderer[tab-id="FEmusic_liked"]+ytmusic-pivot-bar-item-renderer {
+  /* display: none !important; */
+}
+
+/* Hide specific ads or promos */
+ytmusic-mealbar-promo-renderer {
+  display: none !important;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 900px) {
+  ytmusic-nav-bar {
+    padding-left: 60px !important;
+  }
+
+  .non-expandable.ytmusic-description-shelf-renderer {
+    font-size: 22px !important;
+    padding: 20px !important;
+  }
+}
+
+/* ============================================
+   CUSTOM ACCENT COLORS - Quick Swaps
+   ============================================ */
+
+/* Uncomment to use different themes */
+
+/* Ocean Blue Theme
+:root {
+  --lg-primary: #4facfe;
+  --lg-primary-dark: #3d9ae8;
+  --lg-accent: #00f2fe;
+}
+*/
+
+/* Purple Dream Theme
+:root {
+  --lg-primary: #a78bfa;
+  --lg-primary-dark: #8b5cf6;
+  --lg-accent: #ec4899;
+}
+*/
+
+/* Emerald Theme
+:root {
+  --lg-primary: #10b981;
+  --lg-primary-dark: #059669;
+  --lg-accent: #06b6d4;
+}
+*/

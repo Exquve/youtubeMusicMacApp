@@ -1,0 +1,32 @@
+{
+    "name": "yt-music-macos",
+    "version": "1.0.0",
+    "description": "Custom YouTube Music Desktop App for macOS with Liquid Glass Theme",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "build": "electron-builder --mac",
+        "dev": "electron . --enable-logging"
+    },
+    "author": "Yusuf Kara",
+    "license": "MIT",
+    "devDependencies": {
+        "electron": "^28.0.0",
+        "electron-builder": "^24.9.1"
+    },
+    "build": {
+        "appId": "com.yusufkara.ytmusic",
+        "productName": "YT Music",
+        "mac": {
+            "category": "public.app-category.music",
+            "icon": "assets/icon.icns",
+            "target": [
+                "dmg",
+                "zip"
+            ]
+        },
+        "directories": {
+            "output": "dist"
+        }
+    }
+}
