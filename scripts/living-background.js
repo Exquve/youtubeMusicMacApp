@@ -95,39 +95,39 @@
       /* Center pulse - main color glow */
       #living-bg-pulse {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 200%;
-        height: 200%;
+        top: 40%;
+        left: 25%;
+        width: 120%;
+        height: 120%;
         transform: translate(-50%, -50%);
         background: radial-gradient(ellipse at center,
           rgba(var(--bg-r), var(--bg-g), var(--bg-b), var(--pulse-opacity, 0)) 0%,
-          transparent 50%);
+          transparent 60%);
         opacity: 1;
-        transition: all 0.05s ease;
+        filter: blur(80px);
+        transition: all 0.1s ease;
       }
       
-      /* Dynamic light orbs - random positions */
+      /* Ambient glow orbs - positioned behind album art area */
       .living-bg-orb {
         position: absolute;
-        width: 300px;
-        height: 300px;
         border-radius: 50%;
         background: radial-gradient(circle,
-          rgba(var(--bg-r), var(--bg-g), var(--bg-b), var(--orb-opacity, 0)) 0%,
+          rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.6) 0%,
+          rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.2) 40%,
           transparent 70%);
-        filter: blur(40px);
-        transition: all 0.08s ease;
+        filter: blur(100px);
+        transition: opacity 0.15s ease-out;
         pointer-events: none;
       }
       
-      /* Each orb has different starting position */
-      #living-bg-orb-0 { top: 10%; left: 5%; }
-      #living-bg-orb-1 { top: 20%; right: 10%; }
-      #living-bg-orb-2 { bottom: 30%; left: 15%; }
-      #living-bg-orb-3 { bottom: 20%; right: 5%; }
-      #living-bg-orb-4 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-      #living-bg-orb-5 { top: 40%; right: 25%; }
+      /* Orbs positioned around album art area (left-center of screen) */
+      #living-bg-orb-0 { top: 20%; left: 10%; width: 500px; height: 500px; }
+      #living-bg-orb-1 { top: 30%; left: 20%; width: 600px; height: 600px; }
+      #living-bg-orb-2 { bottom: 20%; left: 5%; width: 450px; height: 450px; }
+      #living-bg-orb-3 { top: 50%; left: 30%; width: 550px; height: 550px; transform: translateY(-50%); }
+      #living-bg-orb-4 { top: 60%; left: 15%; width: 400px; height: 400px; }
+      #living-bg-orb-5 { top: 10%; left: 25%; width: 350px; height: 350px; }
       
       /* Shimmer overlay */
       #living-bg-shimmer {
@@ -385,40 +385,32 @@
     const shimmerIntensity = Math.min(smoothTreble / 180, 0.4);
 
     // Center pulse - main color, follows bass
-    document.documentElement.style.setProperty('--pulse-opacity', bassIntensity * 0.6);
+    document.documentElement.style.setProperty('--pulse-opacity', bassIntensity * 0.5);
 
-    // Update all orbs - flash on/off effect
+    // Update all orbs - random flash behind album art
     const orbs = document.querySelectorAll('.living-bg-orb');
-    orbs.forEach((orb, i) => {
-      // Fade speed based on music tempo
-      // Fast music = quick fade (0.1s), slow music = slower fade (0.4s)
-      const fadeSpeed = 0.4 - musicSpeed * 0.3;
-      orb.style.transition = `opacity ${fadeSpeed}s ease-out, width 0.1s, height 0.1s`;
 
-      // Flash on bass hit - each orb has random chance to flash
+    // Fade speed based on music tempo
+    const fadeSpeed = 0.3 - musicSpeed * 0.2;
+
+    orbs.forEach((orb, i) => {
+      orb.style.transition = `opacity ${fadeSpeed}s ease-out`;
+
+      // Random flash on bass hit - each orb independently
       if (isBassHit && bassIntensity > 0.3) {
-        // Random orbs flash (not all at once)
+        // Random chance to flash (60% chance)
         const shouldFlash = Math.random() > 0.4;
 
         if (shouldFlash) {
-          // Sudden ON
-          orb.style.opacity = 0.7 + Math.random() * 0.3;
-
-          // Size pulse
-          const size = 250 + bassIntensity * 150;
-          orb.style.width = `${size}px`;
-          orb.style.height = `${size}px`;
+          orb.style.opacity = 0.5 + Math.random() * 0.4;
+        } else {
+          orb.style.opacity = baseIntensity * 0.1;
         }
       } else {
-        // Quick fade out when no bass
-        orb.style.opacity = baseIntensity * 0.15;
-        orb.style.width = '200px';
-        orb.style.height = '200px';
+        // Fade out when no bass
+        orb.style.opacity = baseIntensity * 0.1;
       }
     });
-
-    // Set orb color via CSS variable  
-    document.documentElement.style.setProperty('--orb-opacity', bassIntensity * 0.9);
 
     // Shimmer on high frequencies
     document.documentElement.style.setProperty('--shimmer-intensity', shimmerIntensity);
