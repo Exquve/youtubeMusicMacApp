@@ -26,6 +26,17 @@ function getLyricsEnhancerJS() {
   }
 }
 
+// Read living background script
+function getLivingBackgroundJS() {
+  const jsPath = path.join(__dirname, 'scripts', 'living-background.js');
+  try {
+    return fs.readFileSync(jsPath, 'utf8');
+  } catch (e) {
+    console.error('Could not load living background:', e);
+    return '';
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -61,6 +72,12 @@ function createWindow() {
     if (lyricsJS) {
       mainWindow.webContents.executeJavaScript(lyricsJS);
     }
+
+    // Inject living background
+    const livingBgJS = getLivingBackgroundJS();
+    if (livingBgJS) {
+      mainWindow.webContents.executeJavaScript(livingBgJS);
+    }
   });
 
   // Re-inject CSS and JS on navigation
@@ -74,6 +91,12 @@ function createWindow() {
     const lyricsJS = getLyricsEnhancerJS();
     if (lyricsJS) {
       mainWindow.webContents.executeJavaScript(lyricsJS);
+    }
+
+    // Re-inject living background
+    const livingBgJS = getLivingBackgroundJS();
+    if (livingBgJS) {
+      mainWindow.webContents.executeJavaScript(livingBgJS);
     }
   });
 
