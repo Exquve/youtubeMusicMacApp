@@ -21,7 +21,9 @@
     style.id = 'yt-lyrics-styles';
     style.textContent = `
       /* Hide YouTube's native lyrics when we have synced lyrics */
-      .yt-has-synced-lyrics ytmusic-description-shelf-renderer .description {
+      .yt-has-synced-lyrics .description,
+      .yt-has-synced-lyrics ytmusic-description-shelf-renderer > .description,
+      ytmusic-description-shelf-renderer.yt-has-synced-lyrics .description {
         display: none !important;
       }
       
