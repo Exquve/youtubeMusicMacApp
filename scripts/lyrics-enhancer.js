@@ -44,10 +44,12 @@
         display: none !important;
       }
       
-      /* Hide YouTube's native lyrics when we have synced lyrics */
+      /* Hide YouTube's native lyrics when we have synced lyrics OR during loading */
       .yt-has-synced-lyrics .description,
       .yt-has-synced-lyrics ytmusic-description-shelf-renderer > .description,
-      ytmusic-description-shelf-renderer.yt-has-synced-lyrics .description {
+      ytmusic-description-shelf-renderer.yt-has-synced-lyrics .description,
+      .yt-lyrics-loading .description,
+      ytmusic-description-shelf-renderer.yt-lyrics-loading .description {
         display: none !important;
       }
       
@@ -286,17 +288,31 @@
     console.log('[YT Lyrics] ✓ Injected', syncedLyrics.length, 'lines into native panel!');
   }
 
-  // Remove our injected content
+  // Remove our injected content and reset state
   function removeSyncedLyrics() {
+    // Remove our container
     const container = document.getElementById('yt-synced-container');
     if (container) {
       container.remove();
     }
 
+    // Remove synced classes from all panels
     const panels = document.querySelectorAll('.yt-has-synced-lyrics');
     panels.forEach(p => p.classList.remove('yt-has-synced-lyrics'));
 
+    // Remove loading classes
+    const loadingPanels = document.querySelectorAll('.yt-lyrics-loading');
+    loadingPanels.forEach(p => p.classList.remove('yt-lyrics-loading'));
+
     lyricsContainer = null;
+  }
+
+  // Hide YouTube's native lyrics immediately (before fetch completes)
+  function hideNativeLyrics() {
+    const panels = document.querySelectorAll('ytmusic-description-shelf-renderer');
+    panels.forEach(panel => {
+      panel.classList.add('yt-lyrics-loading');
+    });
   }
 
   function updateActiveLine() {
@@ -354,11 +370,14 @@
     currentSong = song;
     isFetching = true;
 
-    // IMMEDIATELY clear old lyrics
+    // IMMEDIATELY clear everything to prevent glitches
     syncedLyrics = [];
     lastActiveIndex = -1;
     lyricsContainer = null;
     removeSyncedLyrics();
+
+    // Hide native lyrics immediately while loading
+    hideNativeLyrics();
 
     try {
       // Fetch new lyrics
@@ -368,15 +387,25 @@
       const currentKey = `${getSongInfo().title}::${getSongInfo().artist}`;
       if (currentKey !== songKey) {
         console.log('[YT Lyrics] Song changed during fetch, discarding');
+        removeSyncedLyrics();
         return;
       }
 
       if (lyrics && lyrics.length > 0) {
         syncedLyrics = lyrics;
-        setTimeout(injectSyncedLyrics, 300);
+        // Inject after a short delay
+        setTimeout(() => {
+          if (syncedLyrics.length > 0) {
+            injectSyncedLyrics();
+          }
+        }, 200);
+      } else {
+        // No synced lyrics - show native lyrics again
+        removeSyncedLyrics();
       }
     } catch (error) {
       console.error('[YT Lyrics] Fetch error:', error);
+      removeSyncedLyrics();
     } finally {
       isFetching = false;
     }
