@@ -20,6 +20,30 @@
     const style = document.createElement('style');
     style.id = 'yt-lyrics-styles';
     style.textContent = `
+      /* Hide scrollbar in lyrics tab */
+      #tab-renderer,
+      #tab-renderer *,
+      ytmusic-tab-renderer,
+      ytmusic-tab-renderer *,
+      ytmusic-section-list-renderer,
+      ytmusic-section-list-renderer *,
+      #contents.ytmusic-section-list-renderer {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      
+      #tab-renderer::-webkit-scrollbar,
+      #tab-renderer *::-webkit-scrollbar,
+      ytmusic-tab-renderer::-webkit-scrollbar,
+      ytmusic-tab-renderer *::-webkit-scrollbar,
+      ytmusic-section-list-renderer::-webkit-scrollbar,
+      ytmusic-section-list-renderer *::-webkit-scrollbar,
+      #contents.ytmusic-section-list-renderer::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+        display: none !important;
+      }
+      
       /* Hide YouTube's native lyrics when we have synced lyrics */
       .yt-has-synced-lyrics .description,
       .yt-has-synced-lyrics ytmusic-description-shelf-renderer > .description,
@@ -35,23 +59,27 @@
         overflow-y: auto;
         overflow-x: hidden;
         scroll-behavior: smooth;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
       }
       
       #yt-synced-container::-webkit-scrollbar {
-        width: 6px;
+        width: 0 !important;
+        height: 0 !important;
+        display: none !important;
       }
       
-      #yt-synced-container::-webkit-scrollbar-track {
-        background: transparent;
+      /* Hide scrollbar on parent elements too */
+      .yt-has-synced-lyrics,
+      .yt-has-synced-lyrics * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
       }
       
-      #yt-synced-container::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 3px;
-      }
-      
-      #yt-synced-container::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3);
+      .yt-has-synced-lyrics::-webkit-scrollbar,
+      .yt-has-synced-lyrics *::-webkit-scrollbar {
+        width: 0 !important;
+        display: none !important;
       }
       
       /* Each lyrics line */
