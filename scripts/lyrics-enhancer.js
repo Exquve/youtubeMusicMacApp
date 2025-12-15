@@ -88,45 +88,11 @@
         content: "♪";
         font-size: 14px;
       }
-      
-      /* Current line indicator at bottom */
-      #yt-current-line-indicator {
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(20, 20, 25, 0.95);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        padding: 12px 24px;
-        border-radius: 30px;
-        font-size: 15px;
-        font-weight: 500;
-        color: white;
-        z-index: 9999;
-        max-width: 500px;
-        text-align: center;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        display: none;
-        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-      }
-      
-      #yt-current-line-indicator.visible {
-        display: block;
-      }
     `;
     document.head.appendChild(style);
   }
 
-  // Create current line indicator (floating at bottom)
-  function createIndicator() {
-    if (document.getElementById('yt-current-line-indicator')) return;
 
-    const indicator = document.createElement('div');
-    indicator.id = 'yt-current-line-indicator';
-    document.body.appendChild(indicator);
-  }
 
   function getSongInfo() {
     const titleEl = document.querySelector('.title.ytmusic-player-bar');
@@ -287,12 +253,7 @@
     if (activeIndex === lastActiveIndex) return;
     lastActiveIndex = activeIndex;
 
-    // Update indicator
-    const indicator = document.getElementById('yt-current-line-indicator');
-    if (indicator && activeIndex >= 0) {
-      indicator.textContent = syncedLyrics[activeIndex].text;
-      indicator.classList.add('visible');
-    }
+
 
     // Update lines in container
     if (!lyricsContainer) return;
@@ -324,9 +285,7 @@
       // Remove old lyrics
       removeSyncedLyrics();
 
-      // Hide indicator initially
-      const indicator = document.getElementById('yt-current-line-indicator');
-      if (indicator) indicator.classList.remove('visible');
+
 
       // Fetch new lyrics
       const lyrics = await fetchLyrics(song.title, song.artist);
@@ -366,7 +325,7 @@
   function init() {
     console.log('[YT Lyrics] Initializing integrated lyrics...');
     injectStyles();
-    createIndicator();
+
     watchLyricsTab();
     startLoop();
     console.log('[YT Lyrics] Ready! Synced lyrics will appear in the native LYRICS tab.');
