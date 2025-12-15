@@ -524,66 +524,76 @@
           try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = 50;
-            canvas.height = 50;
 
-            ctx.drawImage(img, 0, 0, 50, 50);
-            const imageData = ctx.getImageData(0, 0, 50, 50).data;
+            // Use larger canvas for better accuracy
+            const size = 100;
+            canvas.width = size;
+            canvas.height = size;
 
-            // Simple approach: find the most common non-gray color
-            const colorBins = {};
+            ctx.drawImage(img, 0, 0, size, size);
+
+            // Sample from CENTER region (skip edges which often have borders/text)
+            const margin = 20;
+            const sampleWidth = size - margin * 2;
+            const sampleHeight = size - margin * 2;
+            const imageData = ctx.getImageData(margin, margin, sampleWidth, sampleHeight).data;
+
+            // Group colors by hue (more intuitive for dominant color)
+            const hueGroups = {};
 
             for (let i = 0; i < imageData.length; i += 4) {
               const r = imageData[i];
               const g = imageData[i + 1];
               const b = imageData[i + 2];
 
-              // Check if it's NOT grayscale (has some color)
+              // Skip very dark or very light
+              const brightness = (r + g + b) / 3;
+              if (brightness < 25 || brightness > 240) continue;
+
+              // Skip grayscale
               const max = Math.max(r, g, b);
               const min = Math.min(r, g, b);
-              const diff = max - min;
+              if (max - min < 15) continue;
 
-              // Skip pure black/white/gray (low color difference)
-              if (diff < 20) continue;
+              // Calculate hue (simplified)
+              let hue = 0;
+              const d = max - min;
+              if (max === r) hue = ((g - b) / d) % 6;
+              else if (max === g) hue = (b - r) / d + 2;
+              else hue = (r - g) / d + 4;
+              hue = Math.round((hue * 60 + 360) % 360);
 
-              // Skip very dark pixels
-              const brightness = (r + g + b) / 3;
-              if (brightness < 30) continue;
+              // Group by hue ranges (30 degree buckets)
+              const hueBucket = Math.floor(hue / 30) * 30;
 
-              // Quantize colors into bins (reduce to 32 levels per channel)
-              const binR = Math.floor(r / 32) * 32;
-              const binG = Math.floor(g / 32) * 32;
-              const binB = Math.floor(b / 32) * 32;
-              const key = `${binR},${binG},${binB}`;
-
-              if (!colorBins[key]) {
-                colorBins[key] = { r: 0, g: 0, b: 0, count: 0 };
+              if (!hueGroups[hueBucket]) {
+                hueGroups[hueBucket] = { r: 0, g: 0, b: 0, count: 0 };
               }
-              colorBins[key].r += r;
-              colorBins[key].g += g;
-              colorBins[key].b += b;
-              colorBins[key].count++;
+              hueGroups[hueBucket].r += r;
+              hueGroups[hueBucket].g += g;
+              hueGroups[hueBucket].b += b;
+              hueGroups[hueBucket].count++;
             }
 
-            // Find the most common color
-            let bestColor = { r: 200, g: 100, b: 150 }; // Default to pink-ish
+            // Find the most common hue group
+            let bestColor = { r: 150, g: 100, b: 200 }; // Purple default
             let bestCount = 0;
 
-            for (const key in colorBins) {
-              const bin = colorBins[key];
-              if (bin.count > bestCount) {
-                bestCount = bin.count;
+            for (const hue in hueGroups) {
+              const group = hueGroups[hue];
+              if (group.count > bestCount) {
+                bestCount = group.count;
                 bestColor = {
-                  r: Math.round(bin.r / bin.count),
-                  g: Math.round(bin.g / bin.count),
-                  b: Math.round(bin.b / bin.count)
+                  r: Math.round(group.r / group.count),
+                  g: Math.round(group.g / group.count),
+                  b: Math.round(group.b / group.count)
                 };
               }
             }
 
             dominantColor = bestColor;
             updateColorVariables();
-            console.log('[Living BG] ✓ Color from fetched image:', dominantColor);
+            console.log('[Living BG] ✓ Color extracted:', `rgb(${bestColor.r}, ${bestColor.g}, ${bestColor.b})`);
 
             URL.revokeObjectURL(blobUrl);
           } catch (e) {
