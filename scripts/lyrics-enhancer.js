@@ -27,10 +27,31 @@
         display: none !important;
       }
       
-      /* Our synced lyrics container */
+      /* Our synced lyrics container - scrollable box */
       #yt-synced-container {
         padding: 16px;
         font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+        max-height: 60vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+      }
+      
+      #yt-synced-container::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      #yt-synced-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      
+      #yt-synced-container::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
+      
+      #yt-synced-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
       
       /* Each lyrics line */
@@ -171,10 +192,22 @@
     return result.sort((a, b) => a.time - b.time);
   }
 
-  // Find the lyrics tab content area
+  // Find the lyrics tab content area - specifically in the player page lyrics tab
   function findLyricsPanel() {
-    // Look for the description shelf which contains lyrics
-    return document.querySelector('ytmusic-description-shelf-renderer');
+    // More specific selectors to find only the lyrics panel, not other description shelves
+    const selectors = [
+      '#tab-renderer ytmusic-description-shelf-renderer',
+      'ytmusic-player-page ytmusic-description-shelf-renderer',
+      '#tabs-content ytmusic-description-shelf-renderer',
+      '[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"] ytmusic-description-shelf-renderer'
+    ];
+
+    for (const sel of selectors) {
+      const panel = document.querySelector(sel);
+      if (panel) return panel;
+    }
+
+    return null;
   }
 
   // Inject our synced lyrics into YouTube's lyrics panel
@@ -273,29 +306,51 @@
     });
   }
 
+  let isFetching = false;
+  let lastSongKey = '';
+
   async function checkSongChange() {
     const song = getSongInfo();
+    const songKey = `${song.title}::${song.artist}`;
 
-    if (song.title && song.artist &&
-      (song.title !== currentSong.title || song.artist !== currentSong.artist)) {
+    // Skip if no song info or same song
+    if (!song.title || songKey === lastSongKey) return;
 
-      console.log('[YT Lyrics] New song:', song.title);
-      currentSong = song;
-      syncedLyrics = [];
-      lastActiveIndex = -1;
+    // Skip if already fetching
+    if (isFetching) return;
 
-      // Remove old lyrics
-      removeSyncedLyrics();
+    console.log('[YT Lyrics] Song changed:', song.title);
 
+    // Update tracking
+    lastSongKey = songKey;
+    currentSong = song;
+    isFetching = true;
 
+    // IMMEDIATELY clear old lyrics
+    syncedLyrics = [];
+    lastActiveIndex = -1;
+    lyricsContainer = null;
+    removeSyncedLyrics();
 
+    try {
       // Fetch new lyrics
       const lyrics = await fetchLyrics(song.title, song.artist);
-      if (lyrics) {
-        syncedLyrics = lyrics;
-        // Delay injection to wait for YT panel to render
-        setTimeout(injectSyncedLyrics, 500);
+
+      // Double check we're still on the same song
+      const currentKey = `${getSongInfo().title}::${getSongInfo().artist}`;
+      if (currentKey !== songKey) {
+        console.log('[YT Lyrics] Song changed during fetch, discarding');
+        return;
       }
+
+      if (lyrics && lyrics.length > 0) {
+        syncedLyrics = lyrics;
+        setTimeout(injectSyncedLyrics, 300);
+      }
+    } catch (error) {
+      console.error('[YT Lyrics] Fetch error:', error);
+    } finally {
+      isFetching = false;
     }
   }
 
@@ -314,7 +369,8 @@
   }
 
   function startLoop() {
-    setInterval(checkSongChange, 2000);
+    // Check song changes more frequently
+    setInterval(checkSongChange, 500);
     setInterval(updateActiveLine, 100);
     setInterval(() => {
       // Keep trying to inject if not present
