@@ -125,7 +125,7 @@
           rgba(var(--bg-r), var(--bg-g), var(--bg-b), var(--pulse-opacity, 0)) 0%,
           transparent 60%);
         opacity: 1;
-        filter: blur(80px);
+        filter: blur(50px);
         transition: all 0.1s ease;
       }
       
@@ -137,9 +137,11 @@
           rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.6) 0%,
           rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.2) 40%,
           transparent 70%);
-        filter: blur(100px);
+        filter: blur(60px);
         transition: opacity 0.15s ease-out;
         pointer-events: none;
+        will-change: opacity, transform;
+        transform: translateZ(0); /* Force GPU acceleration */
       }
       
       /* Orbs positioned around album art area (left-center of screen) */
@@ -172,18 +174,25 @@
       
       .particle {
         position: absolute;
-        width: 3px;
-        height: 3px;
-        background: rgba(255, 255, 255, 0.8);
+        width: 4px;
+        height: 4px;
+        background: radial-gradient(circle, 
+          rgba(255, 255, 255, 1) 0%, 
+          rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.9) 50%,
+          transparent 100%);
         border-radius: 50%;
-        box-shadow: 0 0 10px rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.8);
+        box-shadow: 
+          0 0 8px rgba(255, 255, 255, 0.8),
+          0 0 15px rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.6);
         animation: float-particle 4s infinite ease-in-out;
+        will-change: transform, opacity;
       }
       
       @keyframes float-particle {
         0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
         10% { opacity: 1; }
-        90% { opacity: 1; }
+        50% { opacity: 1; transform: translate(calc(var(--tx) * 0.5), calc(var(--ty) * 0.5)) scale(1.2); }
+        90% { opacity: 0.8; }
         100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
       }
       
@@ -235,7 +244,7 @@
         background-position: center;
         animation: shimmer-move 4s ease-in-out infinite;
         opacity: 0.8;
-        filter: blur(60px);
+        filter: blur(40px);
       }
       
       @keyframes shimmer-move {
@@ -515,9 +524,19 @@
       }
     });
 
-    // Spawn particles on strong bass hits
-    if (isBassHit && bassIntensity > 0.5 && Math.random() > 0.7) {
-      spawnParticles(3 + Math.floor(bassIntensity * 5));
+    // Spawn particles on strong bass hits - increased frequency and amount
+    if (isBassHit && bassIntensity > 0.4 && Math.random() > 0.5) {
+      spawnParticles(5 + Math.floor(bassIntensity * 10));
+    }
+
+    // Also spawn particles on high treble (cymbals, hi-hats)
+    if (smoothTreble > 120 && Math.random() > 0.6) {
+      spawnParticles(3 + Math.floor(smoothTreble / 50));
+    }
+
+    // Continuous subtle particles when music is playing
+    if (smoothEnergy > 80 && Math.random() > 0.85) {
+      spawnParticles(2);
     }
 
     // Draw connecting lines between orbs
@@ -531,6 +550,14 @@
   function spawnParticles(count) {
     const container = document.getElementById('living-bg-particles');
     if (!container) return;
+
+    // Limit max particles for performance
+    const currentParticles = container.children.length;
+    const maxParticles = 50;
+    if (currentParticles >= maxParticles) return;
+
+    // Reduce count if would exceed max
+    count = Math.min(count, maxParticles - currentParticles);
 
     for (let i = 0; i < count; i++) {
       const particle = document.createElement('div');
@@ -575,15 +602,15 @@
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
-    if (intensity < 0.2) return; // Don't draw lines when music is quiet
+    if (intensity < 0.3) return; // Don't draw lines when music is quiet (threshold increased)
     
-    // Get orb positions
+    // Get orb positions - only check visible orbs
     const orbs = document.querySelectorAll('.living-bg-orb');
     const activeOrbs = [];
     
     orbs.forEach(orb => {
       const opacity = parseFloat(orb.style.opacity || 0);
-      if (opacity > 0.2) {
+      if (opacity > 0.3) { // Higher threshold for active orbs
         const rect = orb.getBoundingClientRect();
         activeOrbs.push({
           x: rect.left + rect.width / 2,
@@ -593,11 +620,14 @@
       }
     });
     
-    // Draw lines between nearby orbs
-    const maxDistance = 400 + speed * 200;
+    // Skip if too few active orbs
+    if (activeOrbs.length < 2) return;
     
-    ctx.strokeStyle = `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, ${intensity * 0.4})`;
-    ctx.lineWidth = 1 + intensity * 2;
+    // Draw lines between nearby orbs
+    const maxDistance = 350 + speed * 150; // Reduced max distance
+    
+    ctx.strokeStyle = `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, ${intensity * 0.3})`;
+    ctx.lineWidth = 1 + intensity * 1.5; // Thinner lines
     
     for (let i = 0; i < activeOrbs.length; i++) {
       for (let j = i + 1; j < activeOrbs.length; j++) {
@@ -609,7 +639,7 @@
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < maxDistance) {
-          const opacity = (1 - distance / maxDistance) * Math.min(orb1.opacity, orb2.opacity) * intensity;
+          const opacity = (1 - distance / maxDistance) * Math.min(orb1.opacity, orb2.opacity) * intensity * 0.8;
           
           ctx.globalAlpha = opacity;
           ctx.beginPath();
@@ -657,14 +687,25 @@
     return { r: rgb[0], g: rgb[1], b: rgb[2] };
   }
 
-  // Animation loop
+  // Animation loop - capped at 30 FPS for better performance
   function startVisualization() {
-    function animate() {
+    const targetFPS = 30;
+    const frameDelay = 1000 / targetFPS;
+    let lastFrameTime = 0;
+
+    function animate(currentTime) {
+      animationId = requestAnimationFrame(animate);
+      
+      // Throttle to 30 FPS
+      const deltaTime = currentTime - lastFrameTime;
+      if (deltaTime < frameDelay) return;
+      
+      lastFrameTime = currentTime - (deltaTime % frameDelay);
+      
       const frequencies = analyzeFrequencies();
       updateVisuals(frequencies);
-      animationId = requestAnimationFrame(animate);
     }
-    animate();
+    animate(0);
   }
 
   // Extract dominant color from album art or YouTube's computed styles
