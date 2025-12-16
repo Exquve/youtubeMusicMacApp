@@ -25,9 +25,23 @@
   let linesContext = null;
   let particles = [];
   let orbPositions = [];
-  let beamAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+  let beamAngles = [];
+  let beamPositions = [];
+  let beamActiveUntil = []; // Track when each beam should turn off
   let lastBeatTime = 0;
   let beatInterval = 500; // ms between beats
+  let avgBeatInterval = 500;
+  let beatHistory = [];
+  
+  // Initialize random beam angles and positions
+  for (let i = 0; i < 12; i++) {
+    beamAngles.push(Math.random() * 360);
+    beamPositions.push({
+      x: 20 + Math.random() * 60, // 20-80% of screen
+      y: 20 + Math.random() * 60
+    });
+    beamActiveUntil.push(0);
+  }
 
   // Audio analysis settings
   const FFT_SIZE = 256;
@@ -257,11 +271,10 @@
       /* DISCO BALL LIGHT BEAMS */
       #disco-beams {
         position: absolute;
-        top: 50%;
-        left: 50%;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
-        transform: translate(-50%, -50%);
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.1s ease;
@@ -269,8 +282,6 @@
       
       .disco-beam {
         position: absolute;
-        top: 50%;
-        left: 50%;
         width: 0;
         height: 3px;
         transform-origin: 0 0;
@@ -281,7 +292,7 @@
           transparent 100%);
         box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
         transition: width 0.05s ease-out, opacity 0.05s ease-out;
-        will-change: transform, width, opacity;
+        will-change: transform, width, opacity, left, top;
       }
       
       /* DISCO SPOTLIGHTS */
@@ -561,14 +572,32 @@
     // Music speed/tempo detection based on energy
     const musicSpeed = Math.min(smoothEnergy / 150, 1);
 
-    // Beat detection - sharp bass hit
-    const isBeat = smoothBass > 120;
-    const bassIntensity = isBeat ? Math.min((smoothBass - 80) / 140, 1) : 0;
+    // Beat detection - sharp bass hit with improved tempo-based threshold
+    const isBeat = smoothBass > 130; // Higher threshold for cleaner beat detection
+    const bassIntensity = isBeat ? Math.min((smoothBass - 90) / 140, 1) : 0;
 
-    // Detect beat timing for rhythm sync
+    // Detect beat timing for rhythm sync - improved beat tracking
     const now = Date.now();
-    if (isBeat && bassIntensity > 0.5 && (now - lastBeatTime) > 200) {
-      beatInterval = now - lastBeatTime;
+    const timeSinceLastBeat = now - lastBeatTime;
+    
+    // Only register beat if enough time passed based on music tempo
+    const minBeatInterval = avgBeatInterval * 0.7; // At least 70% of average beat interval
+    
+    if (isBeat && bassIntensity > 0.6 && timeSinceLastBeat > minBeatInterval) {
+      const currentInterval = timeSinceLastBeat;
+      
+      // Track beat history for more accurate tempo
+      beatHistory.push(currentInterval);
+      if (beatHistory.length > 8) {
+        beatHistory.shift();
+      }
+      
+      // Calculate average beat interval from recent beats
+      if (beatHistory.length >= 3) {
+        avgBeatInterval = beatHistory.reduce((a, b) => a + b, 0) / beatHistory.length;
+      }
+      
+      beatInterval = currentInterval;
       lastBeatTime = now;
     }
 
@@ -614,7 +643,7 @@
     });
 
     // Update light beams - synchronized with beats
-    updateLightBeams(isBeat, bassIntensity, smoothEnergy);
+    updateLightBeams(isBeat, bassIntensity, smoothEnergy, now);
 
     // Update spotlights - synchronized with rhythm
     updateSpotlights(isBeat, bassIntensity, smoothTreble);
@@ -640,7 +669,7 @@
   }
 
   // Update light beams synchronized with music
-  function updateLightBeams(isBeat, intensity, energy) {
+  function updateLightBeams(isBeat, intensity, energy, currentTime) {
     const beamsContainer = document.getElementById('disco-beams');
     if (!beamsContainer) return;
 
@@ -650,17 +679,49 @@
     beamsContainer.style.opacity = isActive ? Math.min(energy / 150, 0.6) : 0;
 
     beams.forEach((beam, i) => {
-      if (isBeat && intensity > 0.4) {
-        // On beat, shoot beams
-        const length = 300 + intensity * 400;
-        beam.style.width = length + 'px';
-        beam.style.opacity = 0.7 + intensity * 0.3;
+      // Check if this beam should be active based on beat timing
+      const isBeamActive = currentTime < beamActiveUntil[i];
+      
+      if (isBeat && intensity > 0.6) {
+        // Only trigger 1-3 beams per beat, based on intensity
+        const maxBeamsPerBeat = Math.ceil(1 + intensity * 2); // 1-3 beams
+        const beamIndex = Math.floor(Math.random() * beams.length);
         
-        // Rotate beams on each beat
-        beamAngles[i] = (beamAngles[i] + 30) % 360;
-        beam.style.transform = `rotate(${beamAngles[i]}deg)`;
-      } else {
-        // Fade out between beats
+        // Only this specific beam index range gets triggered
+        const shouldTrigger = i >= beamIndex && i < (beamIndex + maxBeamsPerBeat);
+        
+        if (shouldTrigger && Math.random() > 0.3) {
+          // Calculate beam duration based on music tempo
+          // Slower music = longer beams stay visible
+          const beamDuration = Math.min(avgBeatInterval * 0.8, 600); // 80% of beat interval
+          beamActiveUntil[i] = currentTime + beamDuration;
+          
+          // Set beam properties
+          const length = 350 + intensity * 450;
+          beam.style.width = length + 'px';
+          beam.style.opacity = 0.6 + intensity * 0.4;
+          
+          // Set position
+          beam.style.left = beamPositions[i].x + '%';
+          beam.style.top = beamPositions[i].y + '%';
+          
+          // Random angle change
+          const angleChange = (Math.random() - 0.5) * 80;
+          beamAngles[i] = (beamAngles[i] + angleChange + 360) % 360;
+          beam.style.transform = `rotate(${beamAngles[i]}deg)`;
+          
+          // Occasionally change position
+          if (Math.random() < 0.12) {
+            beamPositions[i] = {
+              x: 15 + Math.random() * 70,
+              y: 15 + Math.random() * 70
+            };
+          }
+        }
+      }
+      
+      // Turn off beam if duration expired
+      if (!isBeamActive) {
         beam.style.width = '0px';
         beam.style.opacity = 0;
       }
