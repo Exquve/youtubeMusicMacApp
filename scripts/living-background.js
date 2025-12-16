@@ -225,20 +225,22 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(
-          45deg,
-          transparent 40%,
-          rgba(255, 255, 255, var(--shimmer-intensity, 0)) 50%,
-          transparent 60%
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 255, 255, var(--shimmer-intensity, 0)) 0%,
+          rgba(255, 255, 255, calc(var(--shimmer-intensity, 0) * 0.5)) 30%,
+          transparent 70%
         );
-        background-size: 200% 200%;
-        animation: shimmer-move 3s ease infinite;
-        opacity: 1;
+        background-size: 300% 300%;
+        background-position: center;
+        animation: shimmer-move 4s ease-in-out infinite;
+        opacity: 0.8;
+        filter: blur(60px);
       }
       
       @keyframes shimmer-move {
-        0% { background-position: 200% 200%; }
-        100% { background-position: -200% -200%; }
+        0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.6; }
+        50% { transform: scale(1.2) translate(10%, -10%); opacity: 1; }
       }
       
       /* Apply when active */
