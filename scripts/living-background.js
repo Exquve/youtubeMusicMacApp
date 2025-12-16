@@ -25,6 +25,9 @@
   let linesContext = null;
   let particles = [];
   let orbPositions = [];
+  let beamAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+  let lastBeatTime = 0;
+  let beatInterval = 500; // ms between beats
 
   // Audio analysis settings
   const FFT_SIZE = 256;
@@ -38,6 +41,7 @@
   // Current state
   let lastBassLevel = 0;
   let lastTrebleLevel = 0;
+  let lastMidsLevel = 0;
   let avgEnergy = 0;
   let isCalm = true;
 
@@ -68,6 +72,30 @@
       orb.id = `living-bg-orb-${i}`;
       orb.dataset.index = i;
       bg.appendChild(orb);
+    }
+
+    // Create disco ball light beams
+    const discoBeams = document.createElement('div');
+    discoBeams.id = 'disco-beams';
+    bg.appendChild(discoBeams);
+    
+    for (let i = 0; i < 12; i++) {
+      const beam = document.createElement('div');
+      beam.className = 'disco-beam';
+      beam.dataset.index = i;
+      discoBeams.appendChild(beam);
+    }
+
+    // Create spotlight effects
+    const spotlights = document.createElement('div');
+    spotlights.id = 'disco-spotlights';
+    bg.appendChild(spotlights);
+    
+    for (let i = 0; i < 6; i++) {
+      const spot = document.createElement('div');
+      spot.className = 'disco-spotlight';
+      spot.dataset.index = i;
+      spotlights.appendChild(spot);
     }
 
     // Create particle system
@@ -176,24 +204,23 @@
         position: absolute;
         width: 4px;
         height: 4px;
-        background: radial-gradient(circle, 
-          rgba(255, 255, 255, 1) 0%, 
-          rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.9) 50%,
-          transparent 100%);
         border-radius: 50%;
-        box-shadow: 
-          0 0 8px rgba(255, 255, 255, 0.8),
-          0 0 15px rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.6);
         animation: float-particle 4s infinite ease-in-out;
         will-change: transform, opacity;
       }
       
       @keyframes float-particle {
-        0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
+        0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0; }
         10% { opacity: 1; }
-        50% { opacity: 1; transform: translate(calc(var(--tx) * 0.5), calc(var(--ty) * 0.5)) scale(1.2); }
+        50% { 
+          opacity: 1; 
+          transform: translate(calc(var(--tx) * 0.5), calc(var(--ty) * 0.5)) scale(1.4) rotate(180deg); 
+        }
         90% { opacity: 0.8; }
-        100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        100% { 
+          transform: translate(var(--tx), var(--ty)) scale(0) rotate(360deg); 
+          opacity: 0; 
+        }
       }
       
       /* Lines canvas */
@@ -227,7 +254,65 @@
         50% { background-position: 0% 100%, 100% 0%; }
       }
       
-      /* Shimmer overlay */
+      /* DISCO BALL LIGHT BEAMS */
+      #disco-beams {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.1s ease;
+      }
+      
+      .disco-beam {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 3px;
+        transform-origin: 0 0;
+        background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.9) 10%,
+          rgba(255, 255, 255, 0.6) 50%,
+          transparent 100%);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        transition: width 0.05s ease-out, opacity 0.05s ease-out;
+        will-change: transform, width, opacity;
+      }
+      
+      /* DISCO SPOTLIGHTS */
+      #disco-spotlights {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.1s ease;
+      }
+      
+      .disco-spotlight {
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        background: radial-gradient(circle,
+          rgba(255, 255, 255, 0.4) 0%,
+          rgba(255, 255, 255, 0.2) 40%,
+          transparent 70%);
+        filter: blur(40px);
+        opacity: 0;
+        transition: all 0.1s ease-out;
+        will-change: transform, opacity;
+      }
+
+      
+      /* Shimmer overlay - white/warm tones only */
       #living-bg-shimmer {
         position: absolute;
         top: 0;
@@ -236,20 +321,17 @@
         bottom: 0;
         background: radial-gradient(
           ellipse at center,
-          rgba(255, 255, 255, var(--shimmer-intensity, 0)) 0%,
-          rgba(255, 255, 255, calc(var(--shimmer-intensity, 0) * 0.5)) 30%,
+          rgba(255, 255, 255, 0.8) 0%,
+          rgba(255, 230, 180, 0.5) 25%,
+          rgba(255, 200, 120, 0.3) 45%,
           transparent 70%
         );
-        background-size: 300% 300%;
+        background-size: 200% 200%;
         background-position: center;
-        animation: shimmer-move 4s ease-in-out infinite;
-        opacity: 0.8;
-        filter: blur(40px);
-      }
-      
-      @keyframes shimmer-move {
-        0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.6; }
-        50% { transform: scale(1.2) translate(10%, -10%); opacity: 1; }
+        opacity: 0;
+        filter: blur(35px);
+        transition: opacity 0.1s ease;
+        will-change: opacity;
       }
       
       /* Apply when active */
@@ -456,7 +538,7 @@
     return { bass, mids, treble, energy };
   }
 
-  // Update visual effects based on audio - DISCO MODE
+  // Update visual effects based on audio - Sync with music rhythm
   function updateVisuals(frequencies) {
     if (!backgroundEl) return;
 
@@ -465,133 +547,233 @@
     // Fast response for punchy disco feel
     const smoothBass = lastBassLevel * 0.3 + bass * 0.7;
     const smoothTreble = lastTrebleLevel * 0.5 + treble * 0.5;
+    const smoothMids = lastMidsLevel * 0.4 + mids * 0.6;
     const smoothEnergy = avgEnergy * 0.6 + energy * 0.4;
 
     lastBassLevel = smoothBass;
     lastTrebleLevel = smoothTreble;
+    lastMidsLevel = smoothMids;
     avgEnergy = smoothEnergy;
 
     // Calculate base intensity - should be 0 when silent
     const baseIntensity = Math.max(0, (smoothEnergy - 30) / 200);
 
     // Music speed/tempo detection based on energy
-    const musicSpeed = Math.min(smoothEnergy / 150, 1); // 0 = slow, 1 = fast
+    const musicSpeed = Math.min(smoothEnergy / 150, 1);
 
-    // Bass hit detection - sharp pulse on beat
-    const isBassHit = smoothBass > 100;
-    const bassIntensity = isBassHit ? Math.min((smoothBass - 60) / 150, 1) : 0;
+    // Beat detection - sharp bass hit
+    const isBeat = smoothBass > 120;
+    const bassIntensity = isBeat ? Math.min((smoothBass - 80) / 140, 1) : 0;
 
-    // Treble for shimmer
-    const shimmerIntensity = Math.min(smoothTreble / 180, 0.4);
+    // Detect beat timing for rhythm sync
+    const now = Date.now();
+    if (isBeat && bassIntensity > 0.5 && (now - lastBeatTime) > 200) {
+      beatInterval = now - lastBeatTime;
+      lastBeatTime = now;
+    }
+
+    // Treble for shimmer - only white/amber colors
+    const shimmerIntensity = Math.min(smoothTreble / 180, 0.3);
 
     // Center pulse - main color, follows bass
-    document.documentElement.style.setProperty('--pulse-opacity', bassIntensity * 0.5);
+    document.documentElement.style.setProperty('--pulse-opacity', bassIntensity * 0.4);
 
     // Wave overlay intensity
-    const waveOpacity = Math.min(smoothEnergy / 200, 0.3);
+    const waveOpacity = Math.min(smoothEnergy / 200, 0.25);
     document.documentElement.style.setProperty('--wave-opacity', waveOpacity);
 
-    // Update all orbs - random flash behind album art
+    // Update orbs - only album color, no random colors
     const orbs = document.querySelectorAll('.living-bg-orb');
-
-    // Fade speed based on music tempo
-    const fadeSpeed = 0.3 - musicSpeed * 0.2;
+    const fadeSpeed = 0.15;
 
     orbs.forEach((orb, i) => {
-      orb.style.transition = `opacity ${fadeSpeed}s ease-out, transform ${fadeSpeed * 1.5}s ease-out`;
+      orb.style.transition = `opacity ${fadeSpeed}s ease-out, transform ${fadeSpeed}s ease-out`;
 
-      // Random flash on bass hit - each orb independently
-      if (isBassHit && bassIntensity > 0.3) {
-        // Random chance to flash (60% chance)
-        const shouldFlash = Math.random() > 0.4;
-
+      // Flash on beat - synchronized
+      if (isBeat && bassIntensity > 0.4) {
+        const shouldFlash = Math.random() > 0.5;
         if (shouldFlash) {
-          const intensity = 0.5 + Math.random() * 0.4;
+          const intensity = 0.5 + bassIntensity * 0.4;
           orb.style.opacity = intensity;
+          orb.style.filter = 'none'; // No color shift, keep album color
           
-          // Add random movement on beat
-          const moveX = (Math.random() - 0.5) * 20;
-          const moveY = (Math.random() - 0.5) * 20;
+          const moveScale = bassIntensity * 30;
+          const moveX = (Math.random() - 0.5) * moveScale;
+          const moveY = (Math.random() - 0.5) * moveScale;
           orb.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + bassIntensity * 0.3})`;
         } else {
-          orb.style.opacity = baseIntensity * 0.1;
+          orb.style.opacity = baseIntensity * 0.15;
+          orb.style.filter = 'none';
           orb.style.transform = 'translate(0, 0) scale(1)';
         }
       } else {
-        // Fade out when no bass
         orb.style.opacity = baseIntensity * 0.1;
+        orb.style.filter = 'none';
         orb.style.transform = 'translate(0, 0) scale(1)';
       }
     });
 
-    // Spawn particles on strong bass hits - increased frequency and amount
-    if (isBassHit && bassIntensity > 0.4 && Math.random() > 0.5) {
-      spawnParticles(5 + Math.floor(bassIntensity * 10));
+    // Update light beams - synchronized with beats
+    updateLightBeams(isBeat, bassIntensity, smoothEnergy);
+
+    // Update spotlights - synchronized with rhythm
+    updateSpotlights(isBeat, bassIntensity, smoothTreble);
+
+    // Spawn particles on strong bass hits
+    if (isBeat && bassIntensity > 0.5 && Math.random() > 0.6) {
+      spawnParticles(4 + Math.floor(bassIntensity * 8));
     }
 
-    // Also spawn particles on high treble (cymbals, hi-hats)
-    if (smoothTreble > 120 && Math.random() > 0.6) {
-      spawnParticles(3 + Math.floor(smoothTreble / 50));
-    }
-
-    // Continuous subtle particles when music is playing
-    if (smoothEnergy > 80 && Math.random() > 0.85) {
-      spawnParticles(2);
+    // Treble sparkles - white/amber only
+    if (smoothTreble > 130 && Math.random() > 0.7) {
+      spawnParticles(2 + Math.floor(smoothTreble / 60));
     }
 
     // Draw connecting lines between orbs
     drawConnectingLines(bassIntensity, musicSpeed);
 
-    // Shimmer on high frequencies
-    document.documentElement.style.setProperty('--shimmer-intensity', shimmerIntensity);
+    // Shimmer on high frequencies - white/warm tones, sync with treble
+    const shimmer = document.getElementById('living-bg-shimmer');
+    if (shimmer) {
+      shimmer.style.opacity = shimmerIntensity;
+    }
   }
 
-  // Spawn particle effects
+  // Update light beams synchronized with music
+  function updateLightBeams(isBeat, intensity, energy) {
+    const beamsContainer = document.getElementById('disco-beams');
+    if (!beamsContainer) return;
+
+    const beams = beamsContainer.querySelectorAll('.disco-beam');
+    const isActive = energy > 70;
+    
+    beamsContainer.style.opacity = isActive ? Math.min(energy / 150, 0.6) : 0;
+
+    beams.forEach((beam, i) => {
+      if (isBeat && intensity > 0.4) {
+        // On beat, shoot beams
+        const length = 300 + intensity * 400;
+        beam.style.width = length + 'px';
+        beam.style.opacity = 0.7 + intensity * 0.3;
+        
+        // Rotate beams on each beat
+        beamAngles[i] = (beamAngles[i] + 30) % 360;
+        beam.style.transform = `rotate(${beamAngles[i]}deg)`;
+      } else {
+        // Fade out between beats
+        beam.style.width = '0px';
+        beam.style.opacity = 0;
+      }
+    });
+  }
+
+  // Update spotlights synchronized with music
+  function updateSpotlights(isBeat, bassIntensity, treble) {
+    const spotlightsContainer = document.getElementById('disco-spotlights');
+    if (!spotlightsContainer) return;
+
+    const spots = spotlightsContainer.querySelectorAll('.disco-spotlight');
+    
+    spots.forEach((spot, i) => {
+      if (isBeat && bassIntensity > 0.5) {
+        // Flash on strong beats
+        spot.style.opacity = 0.5 + bassIntensity * 0.4;
+        
+        // Move to random position on beat
+        const x = 10 + Math.random() * 80;
+        const y = 10 + Math.random() * 80;
+        spot.style.left = x + '%';
+        spot.style.top = y + '%';
+        spot.style.transform = `scale(${1 + bassIntensity * 0.5})`;
+        
+        // Use white or warm amber
+        const useWarm = treble > 140;
+        if (useWarm) {
+          // Warm amber/sun color
+          spot.style.background = `radial-gradient(circle,
+            rgba(255, 200, 100, 0.5) 0%,
+            rgba(255, 180, 80, 0.3) 40%,
+            transparent 70%)`;
+        } else {
+          // Pure white
+          spot.style.background = `radial-gradient(circle,
+            rgba(255, 255, 255, 0.4) 0%,
+            rgba(255, 255, 255, 0.2) 40%,
+            transparent 70%)`;
+        }
+      } else {
+        spot.style.opacity = 0;
+      }
+    });
+  }
+
+  // Spawn particle effects - white and warm tones only
   function spawnParticles(count) {
     const container = document.getElementById('living-bg-particles');
     if (!container) return;
 
-    // Limit max particles for performance
     const currentParticles = container.children.length;
-    const maxParticles = 50;
+    const maxParticles = 60;
     if (currentParticles >= maxParticles) return;
 
-    // Reduce count if would exceed max
     count = Math.min(count, maxParticles - currentParticles);
 
     for (let i = 0; i < count; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
       
-      // Random starting position
       const startX = Math.random() * window.innerWidth;
       const startY = Math.random() * window.innerHeight;
       
       particle.style.left = startX + 'px';
       particle.style.top = startY + 'px';
       
-      // Random movement direction
-      const tx = (Math.random() - 0.5) * 200;
-      const ty = (Math.random() - 0.5) * 200;
+      const tx = (Math.random() - 0.5) * 250;
+      const ty = (Math.random() - 0.5) * 250;
       
       particle.style.setProperty('--tx', tx + 'px');
       particle.style.setProperty('--ty', ty + 'px');
       
-      // Random delay and duration
-      const duration = 2 + Math.random() * 3;
+      // Use only white or warm amber colors - no rainbow
+      const isWarm = Math.random() > 0.5;
+      if (isWarm) {
+        // Warm amber/sun tone
+        particle.style.background = `radial-gradient(circle, 
+          rgba(255, 220, 150, 1) 0%, 
+          rgba(255, 180, 80, 0.9) 50%,
+          transparent 100%)`;
+        particle.style.boxShadow = `
+          0 0 10px rgba(255, 220, 150, 1),
+          0 0 18px rgba(255, 180, 80, 0.8)`;
+      } else {
+        // Pure white
+        particle.style.background = `radial-gradient(circle, 
+          rgba(255, 255, 255, 1) 0%, 
+          rgba(255, 255, 255, 0.9) 50%,
+          transparent 100%)`;
+        particle.style.boxShadow = `
+          0 0 10px rgba(255, 255, 255, 1),
+          0 0 18px rgba(255, 255, 255, 0.8)`;
+      }
+      particle.style.filter = 'none'; // No hue rotation
+      
+      const size = 3 + Math.random() * 3;
+      particle.style.width = size + 'px';
+      particle.style.height = size + 'px';
+      
+      const duration = 1.5 + Math.random() * 2;
       particle.style.animationDuration = duration + 's';
-      particle.style.animationDelay = (Math.random() * 0.5) + 's';
+      particle.style.animationDelay = (Math.random() * 0.2) + 's';
       
       container.appendChild(particle);
       
-      // Remove after animation
       setTimeout(() => {
         particle.remove();
-      }, (duration + 0.5) * 1000);
+      }, (duration + 0.2) * 1000);
     }
   }
 
-  // Draw connecting lines between active orbs
+  // Draw connecting lines between active orbs - album color + white only
   function drawConnectingLines(intensity, speed) {
     if (!linesCanvas || !linesContext) return;
     
@@ -599,18 +781,16 @@
     const width = linesCanvas.width;
     const height = linesCanvas.height;
     
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
-    if (intensity < 0.3) return; // Don't draw lines when music is quiet (threshold increased)
+    if (intensity < 0.3) return;
     
-    // Get orb positions - only check visible orbs
     const orbs = document.querySelectorAll('.living-bg-orb');
     const activeOrbs = [];
     
     orbs.forEach(orb => {
       const opacity = parseFloat(orb.style.opacity || 0);
-      if (opacity > 0.3) { // Higher threshold for active orbs
+      if (opacity > 0.25) {
         const rect = orb.getBoundingClientRect();
         activeOrbs.push({
           x: rect.left + rect.width / 2,
@@ -620,14 +800,16 @@
       }
     });
     
-    // Skip if too few active orbs
     if (activeOrbs.length < 2) return;
     
-    // Draw lines between nearby orbs
-    const maxDistance = 350 + speed * 150; // Reduced max distance
+    const maxDistance = 380 + speed * 180;
     
-    ctx.strokeStyle = `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, ${intensity * 0.3})`;
-    ctx.lineWidth = 1 + intensity * 1.5; // Thinner lines
+    // Use album dominant color with white highlights
+    const lineColor = dominantColor;
+    const whiteBlend = Math.min(intensity, 0.4);
+    const r = lineColor.r * (1 - whiteBlend) + 255 * whiteBlend;
+    const g = lineColor.g * (1 - whiteBlend) + 255 * whiteBlend;
+    const b = lineColor.b * (1 - whiteBlend) + 255 * whiteBlend;
     
     for (let i = 0; i < activeOrbs.length; i++) {
       for (let j = i + 1; j < activeOrbs.length; j++) {
@@ -639,9 +821,14 @@
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < maxDistance) {
-          const opacity = (1 - distance / maxDistance) * Math.min(orb1.opacity, orb2.opacity) * intensity * 0.8;
+          const opacity = (1 - distance / maxDistance) * Math.min(orb1.opacity, orb2.opacity) * intensity * 0.7;
           
           ctx.globalAlpha = opacity;
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`;
+          ctx.lineWidth = 1.5 + intensity * 1.5;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+          
           ctx.beginPath();
           ctx.moveTo(orb1.x, orb1.y);
           ctx.lineTo(orb2.x, orb2.y);
@@ -651,6 +838,7 @@
     }
     
     ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
   }
 
   // Shift color hue
