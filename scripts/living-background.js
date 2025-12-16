@@ -678,22 +678,48 @@
     
     beamsContainer.style.opacity = isActive ? Math.min(energy / 150, 0.6) : 0;
 
+    // Determine music tempo: fast < 400ms, slow > 600ms
+    const isFastTempo = avgBeatInterval < 450;
+    const isSlowTempo = avgBeatInterval > 600;
+
     beams.forEach((beam, i) => {
       // Check if this beam should be active based on beat timing
       const isBeamActive = currentTime < beamActiveUntil[i];
       
       if (isBeat && intensity > 0.6) {
-        // Only trigger 1-3 beams per beat, based on intensity
-        const maxBeamsPerBeat = Math.ceil(1 + intensity * 2); // 1-3 beams
+        // Adjust beam count based on tempo
+        let maxBeamsPerBeat, triggerChance;
+        
+        if (isFastTempo) {
+          // Fast music: many beams, very high trigger chance
+          maxBeamsPerBeat = Math.ceil(3 + intensity * 5); // 3-8 beams
+          triggerChance = 0.85; // 85% chance
+        } else if (isSlowTempo) {
+          // Slow music: very few beams, low trigger chance
+          maxBeamsPerBeat = 1; // Only 1 beam
+          triggerChance = 0.35; // 35% chance - sometimes no beam at all
+        } else {
+          // Medium tempo
+          maxBeamsPerBeat = Math.ceil(1 + intensity * 3); // 1-4 beams
+          triggerChance = 0.65; // 65% chance
+        }
+        
         const beamIndex = Math.floor(Math.random() * beams.length);
         
         // Only this specific beam index range gets triggered
         const shouldTrigger = i >= beamIndex && i < (beamIndex + maxBeamsPerBeat);
         
-        if (shouldTrigger && Math.random() > 0.3) {
+        if (shouldTrigger && Math.random() < triggerChance) {
           // Calculate beam duration based on music tempo
-          // Slower music = longer beams stay visible
-          const beamDuration = Math.min(avgBeatInterval * 0.8, 600); // 80% of beat interval
+          let beamDuration;
+          if (isFastTempo) {
+            // Fast music: shorter beams (50-60% of interval)
+            beamDuration = avgBeatInterval * 0.55;
+          } else {
+            // Slow music: longer beams (70-90% of interval)
+            beamDuration = Math.min(avgBeatInterval * 0.85, 700);
+          }
+          
           beamActiveUntil[i] = currentTime + beamDuration;
           
           // Set beam properties
@@ -710,8 +736,9 @@
           beamAngles[i] = (beamAngles[i] + angleChange + 360) % 360;
           beam.style.transform = `rotate(${beamAngles[i]}deg)`;
           
-          // Occasionally change position
-          if (Math.random() < 0.12) {
+          // More position changes in fast music
+          const positionChangeChance = isFastTempo ? 0.2 : 0.1;
+          if (Math.random() < positionChangeChance) {
             beamPositions[i] = {
               x: 15 + Math.random() * 70,
               y: 15 + Math.random() * 70
