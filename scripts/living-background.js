@@ -21,6 +21,10 @@
   let animationId = null;
   let backgroundEl = null;
   let audioSource = null;
+  let linesCanvas = null;
+  let linesContext = null;
+  let particles = [];
+  let orbPositions = [];
 
   // Audio analysis settings
   const FFT_SIZE = 256;
@@ -58,13 +62,30 @@
     bg.appendChild(shimmer);
 
     // Create multiple random positioned light orbs
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 15; i++) {
       const orb = document.createElement('div');
       orb.className = 'living-bg-orb';
       orb.id = `living-bg-orb-${i}`;
       orb.dataset.index = i;
       bg.appendChild(orb);
     }
+
+    // Create particle system
+    const particlesContainer = document.createElement('div');
+    particlesContainer.id = 'living-bg-particles';
+    bg.appendChild(particlesContainer);
+
+    // Create connecting lines canvas
+    const linesCanvas = document.createElement('canvas');
+    linesCanvas.id = 'living-bg-lines';
+    linesCanvas.width = window.innerWidth;
+    linesCanvas.height = window.innerHeight;
+    bg.appendChild(linesCanvas);
+
+    // Create wave overlay
+    const waveOverlay = document.createElement('div');
+    waveOverlay.id = 'living-bg-waves';
+    bg.appendChild(waveOverlay);
 
     backgroundEl = bg;
 
@@ -128,6 +149,74 @@
       #living-bg-orb-3 { top: 50%; left: 30%; width: 550px; height: 550px; transform: translateY(-50%); }
       #living-bg-orb-4 { top: 60%; left: 15%; width: 400px; height: 400px; }
       #living-bg-orb-5 { top: 10%; left: 25%; width: 350px; height: 350px; }
+      #living-bg-orb-6 { top: 40%; right: 10%; width: 480px; height: 480px; }
+      #living-bg-orb-7 { bottom: 30%; right: 20%; width: 520px; height: 520px; }
+      #living-bg-orb-8 { top: 15%; right: 30%; width: 400px; height: 400px; }
+      #living-bg-orb-9 { top: 70%; left: 40%; width: 380px; height: 380px; }
+      #living-bg-orb-10 { bottom: 10%; right: 15%; width: 450px; height: 450px; }
+      #living-bg-orb-11 { top: 5%; left: 50%; width: 350px; height: 350px; }
+      #living-bg-orb-12 { bottom: 40%; left: 25%; width: 420px; height: 420px; }
+      #living-bg-orb-13 { top: 80%; right: 25%; width: 390px; height: 390px; }
+      #living-bg-orb-14 { top: 35%; left: 5%; width: 460px; height: 460px; }
+      
+      /* Particles system */
+      #living-bg-particles {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      
+      .particle {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.8);
+        animation: float-particle 4s infinite ease-in-out;
+      }
+      
+      @keyframes float-particle {
+        0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+      }
+      
+      /* Lines canvas */
+      #living-bg-lines {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        opacity: 0.6;
+        mix-blend-mode: screen;
+      }
+      
+      /* Wave overlay */
+      #living-bg-waves {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+          linear-gradient(0deg, transparent 30%, rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.1) 50%, transparent 70%),
+          linear-gradient(90deg, transparent 30%, rgba(var(--bg-r), var(--bg-g), var(--bg-b), 0.1) 50%, transparent 70%);
+        background-size: 100% 200%, 200% 100%;
+        animation: wave-pulse 3s ease-in-out infinite;
+        opacity: var(--wave-opacity, 0);
+        pointer-events: none;
+      }
+      
+      @keyframes wave-pulse {
+        0%, 100% { background-position: 0% 0%, 0% 0%; }
+        50% { background-position: 0% 100%, 100% 0%; }
+      }
       
       /* Shimmer overlay */
       #living-bg-shimmer {
@@ -387,6 +476,10 @@
     // Center pulse - main color, follows bass
     document.documentElement.style.setProperty('--pulse-opacity', bassIntensity * 0.5);
 
+    // Wave overlay intensity
+    const waveOpacity = Math.min(smoothEnergy / 200, 0.3);
+    document.documentElement.style.setProperty('--wave-opacity', waveOpacity);
+
     // Update all orbs - random flash behind album art
     const orbs = document.querySelectorAll('.living-bg-orb');
 
@@ -394,7 +487,7 @@
     const fadeSpeed = 0.3 - musicSpeed * 0.2;
 
     orbs.forEach((orb, i) => {
-      orb.style.transition = `opacity ${fadeSpeed}s ease-out`;
+      orb.style.transition = `opacity ${fadeSpeed}s ease-out, transform ${fadeSpeed * 1.5}s ease-out`;
 
       // Random flash on bass hit - each orb independently
       if (isBassHit && bassIntensity > 0.3) {
@@ -402,18 +495,130 @@
         const shouldFlash = Math.random() > 0.4;
 
         if (shouldFlash) {
-          orb.style.opacity = 0.5 + Math.random() * 0.4;
+          const intensity = 0.5 + Math.random() * 0.4;
+          orb.style.opacity = intensity;
+          
+          // Add random movement on beat
+          const moveX = (Math.random() - 0.5) * 20;
+          const moveY = (Math.random() - 0.5) * 20;
+          orb.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + bassIntensity * 0.3})`;
         } else {
           orb.style.opacity = baseIntensity * 0.1;
+          orb.style.transform = 'translate(0, 0) scale(1)';
         }
       } else {
         // Fade out when no bass
         orb.style.opacity = baseIntensity * 0.1;
+        orb.style.transform = 'translate(0, 0) scale(1)';
       }
     });
 
+    // Spawn particles on strong bass hits
+    if (isBassHit && bassIntensity > 0.5 && Math.random() > 0.7) {
+      spawnParticles(3 + Math.floor(bassIntensity * 5));
+    }
+
+    // Draw connecting lines between orbs
+    drawConnectingLines(bassIntensity, musicSpeed);
+
     // Shimmer on high frequencies
     document.documentElement.style.setProperty('--shimmer-intensity', shimmerIntensity);
+  }
+
+  // Spawn particle effects
+  function spawnParticles(count) {
+    const container = document.getElementById('living-bg-particles');
+    if (!container) return;
+
+    for (let i = 0; i < count; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      
+      // Random starting position
+      const startX = Math.random() * window.innerWidth;
+      const startY = Math.random() * window.innerHeight;
+      
+      particle.style.left = startX + 'px';
+      particle.style.top = startY + 'px';
+      
+      // Random movement direction
+      const tx = (Math.random() - 0.5) * 200;
+      const ty = (Math.random() - 0.5) * 200;
+      
+      particle.style.setProperty('--tx', tx + 'px');
+      particle.style.setProperty('--ty', ty + 'px');
+      
+      // Random delay and duration
+      const duration = 2 + Math.random() * 3;
+      particle.style.animationDuration = duration + 's';
+      particle.style.animationDelay = (Math.random() * 0.5) + 's';
+      
+      container.appendChild(particle);
+      
+      // Remove after animation
+      setTimeout(() => {
+        particle.remove();
+      }, (duration + 0.5) * 1000);
+    }
+  }
+
+  // Draw connecting lines between active orbs
+  function drawConnectingLines(intensity, speed) {
+    if (!linesCanvas || !linesContext) return;
+    
+    const ctx = linesContext;
+    const width = linesCanvas.width;
+    const height = linesCanvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    if (intensity < 0.2) return; // Don't draw lines when music is quiet
+    
+    // Get orb positions
+    const orbs = document.querySelectorAll('.living-bg-orb');
+    const activeOrbs = [];
+    
+    orbs.forEach(orb => {
+      const opacity = parseFloat(orb.style.opacity || 0);
+      if (opacity > 0.2) {
+        const rect = orb.getBoundingClientRect();
+        activeOrbs.push({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+          opacity: opacity
+        });
+      }
+    });
+    
+    // Draw lines between nearby orbs
+    const maxDistance = 400 + speed * 200;
+    
+    ctx.strokeStyle = `rgba(${dominantColor.r}, ${dominantColor.g}, ${dominantColor.b}, ${intensity * 0.4})`;
+    ctx.lineWidth = 1 + intensity * 2;
+    
+    for (let i = 0; i < activeOrbs.length; i++) {
+      for (let j = i + 1; j < activeOrbs.length; j++) {
+        const orb1 = activeOrbs[i];
+        const orb2 = activeOrbs[j];
+        
+        const dx = orb2.x - orb1.x;
+        const dy = orb2.y - orb1.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < maxDistance) {
+          const opacity = (1 - distance / maxDistance) * Math.min(orb1.opacity, orb2.opacity) * intensity;
+          
+          ctx.globalAlpha = opacity;
+          ctx.beginPath();
+          ctx.moveTo(orb1.x, orb1.y);
+          ctx.lineTo(orb2.x, orb2.y);
+          ctx.stroke();
+        }
+      }
+    }
+    
+    ctx.globalAlpha = 1;
   }
 
   // Shift color hue
@@ -664,6 +869,18 @@
     console.log('[Living BG] Starting...');
     injectStyles();
     createBackgroundElement();
+
+    // Initialize canvas for lines
+    linesCanvas = document.getElementById('living-bg-lines');
+    if (linesCanvas) {
+      linesContext = linesCanvas.getContext('2d');
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        linesCanvas.width = window.innerWidth;
+        linesCanvas.height = window.innerHeight;
+      });
+    }
 
     // Try to connect to audio
     setTimeout(connectAudio, 2000);
