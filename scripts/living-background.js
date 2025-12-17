@@ -33,12 +33,14 @@
   let avgBeatInterval = 500;
   let beatHistory = [];
   
-  // Initialize random beam angles and positions
+  // Initialize beam angles and positions deterministically based on index
   for (let i = 0; i < 12; i++) {
-    beamAngles.push(Math.random() * 360);
+    // Evenly distributed angles (0, 30, 60, 90... 330 degrees)
+    beamAngles.push((i * 30) % 360);
+    // Distribute beams in a grid-like pattern across screen
     beamPositions.push({
-      x: 20 + Math.random() * 60, // 20-80% of screen
-      y: 20 + Math.random() * 60
+      x: 20 + (i % 4) * 20, // 20, 40, 60, 80%
+      y: 20 + Math.floor(i / 4) * 30 // 20, 50, 80%
     });
     beamActiveUntil.push(0);
   }
@@ -566,15 +568,16 @@
     lastMidsLevel = smoothMids;
     avgEnergy = smoothEnergy;
 
-    // Calculate base intensity - should be 0 when silent
-    const baseIntensity = Math.max(0, (smoothEnergy - 30) / 200);
+    // Calculate base intensity - very dark when silent, only bright when loud
+    // Range: 0 (silent) to 1 (max energy)
+    const baseIntensity = Math.pow(Math.max(0, smoothEnergy / 255), 1.5); // Exponential for darker lows
 
     // Music speed/tempo detection based on energy
     const musicSpeed = Math.min(smoothEnergy / 150, 1);
 
-    // Beat detection - sharp bass hit with improved tempo-based threshold
-    const isBeat = smoothBass > 130; // Higher threshold for cleaner beat detection
-    const bassIntensity = isBeat ? Math.min((smoothBass - 90) / 140, 1) : 0;
+    // Beat detection - more sensitive for better bass response
+    const isBeat = smoothBass > 100; // Lower threshold for better bass detection
+    const bassIntensity = Math.min(smoothBass / 180, 1); // Continuous intensity, not just on beats
 
     // Detect beat timing for rhythm sync - improved beat tracking
     const now = Date.now();
@@ -601,15 +604,24 @@
       lastBeatTime = now;
     }
 
-    // Treble for shimmer - only white/amber colors
-    const shimmerIntensity = Math.min(smoothTreble / 180, 0.3);
+    // Treble for shimmer - exponential: very subtle at low, visible at high
+    const shimmerIntensity = Math.pow(Math.min(smoothTreble / 180, 1), 1.5) * 0.6;
 
-    // Center pulse - main color, follows bass
-    document.documentElement.style.setProperty('--pulse-opacity', bassIntensity * 0.4);
+    // Center pulse - exponential curve for darker lows, brighter highs
+    const pulseOpacity = Math.pow(Math.min(smoothBass / 220, 1), 1.3);
+    document.documentElement.style.setProperty('--pulse-opacity', pulseOpacity * 0.8);
 
-    // Wave overlay intensity
-    const waveOpacity = Math.min(smoothEnergy / 200, 0.25);
+    // Wave overlay - very subtle at low energy
+    const waveOpacity = Math.pow(Math.min(smoothEnergy / 200, 1), 1.5) * 0.5;
     document.documentElement.style.setProperty('--wave-opacity', waveOpacity);
+    
+    // Background brightness - exponential: dark at low bass, bright at high
+    const bassBrightness = Math.pow(smoothBass / 255, 1.5); // 0-1 exponential
+    const brightnessBoost = bassBrightness * 0.4; // Max 40% boost
+    if (backgroundEl) {
+      // Start darker (0.85) and go up with bass
+      backgroundEl.style.filter = `brightness(${0.85 + brightnessBoost})`;
+    }
 
     // Update orbs - only album color, no random colors
     const orbs = document.querySelectorAll('.living-bg-orb');
@@ -618,28 +630,30 @@
     orbs.forEach((orb, i) => {
       orb.style.transition = `opacity ${fadeSpeed}s ease-out, transform ${fadeSpeed}s ease-out`;
 
-      // Flash on beat - synchronized
-      if (isBeat && bassIntensity > 0.4) {
-        const shouldFlash = Math.random() > 0.5;
-        if (shouldFlash) {
-          const intensity = 0.5 + bassIntensity * 0.4;
-          orb.style.opacity = intensity;
-          orb.style.filter = 'none'; // No color shift, keep album color
-          
-          const moveScale = bassIntensity * 30;
-          const moveX = (Math.random() - 0.5) * moveScale;
-          const moveY = (Math.random() - 0.5) * moveScale;
-          orb.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + bassIntensity * 0.3})`;
-        } else {
-          orb.style.opacity = baseIntensity * 0.15;
-          orb.style.filter = 'none';
-          orb.style.transform = 'translate(0, 0) scale(1)';
-        }
-      } else {
-        orb.style.opacity = baseIntensity * 0.1;
-        orb.style.filter = 'none';
-        orb.style.transform = 'translate(0, 0) scale(1)';
-      }
+      // Exponential curve: very dim at low bass, bright at high
+      const bassExpo = Math.pow(bassIntensity, 1.4); // Exponential for darker lows
+      
+      // NO RANDOM FLASH - continuous brightness following bass level
+      // Each orb has slight variation based on index for natural look
+      const orbVariation = 0.85 + (Math.sin(i * 0.7) * 0.15); // 0.7 to 1.0 variation
+      const orbOpacity = bassExpo * 0.85 * orbVariation;
+      
+      // Always set opacity based on current bass (no conditions)
+      orb.style.opacity = orbOpacity;
+      orb.style.filter = 'none';
+      
+      // Smooth organic movement using sine waves (not random)
+      const time = Date.now() * 0.001;
+      const speed = 0.5 + bassExpo * 0.5; // Movement speed scales with bass
+      const moveScale = bassExpo * 35;
+      
+      // Each orb moves in its own pattern based on index
+      const moveX = Math.sin(i * 1.2 + time * speed) * moveScale;
+      const moveY = Math.cos(i * 0.8 + time * speed) * moveScale;
+      
+      // Scale: 1.0 at low, 1.35 at max
+      const scale = 1 + bassExpo * 0.35;
+      orb.style.transform = `translate(${moveX}px, ${moveY}px) scale(${scale})`;
     });
 
     // Update light beams - synchronized with beats
@@ -648,23 +662,31 @@
     // Update spotlights - synchronized with rhythm
     updateSpotlights(isBeat, bassIntensity, smoothTreble);
 
-    // Spawn particles on strong bass hits
-    if (isBeat && bassIntensity > 0.5 && Math.random() > 0.6) {
-      spawnParticles(4 + Math.floor(bassIntensity * 8));
+    // Spawn particles - directly proportional to bass (no random)
+    const bassExpoParticle = Math.pow(bassIntensity, 1.6);
+    // Spawn on every beat, count proportional to bass level
+    if (isBeat && bassExpoParticle > 0.1) {
+      const particleCount = Math.floor(1 + bassExpoParticle * 10); // 1-11 particles
+      spawnParticles(particleCount, avgBeatInterval, bassIntensity);
     }
 
-    // Treble sparkles - white/amber only
-    if (smoothTreble > 130 && Math.random() > 0.7) {
-      spawnParticles(2 + Math.floor(smoothTreble / 60));
+    // Treble sparkles - directly proportional to treble (no random)
+    const trebleExpo = Math.pow(Math.min(smoothTreble / 220, 1), 1.8);
+    // Spawn treble particles when treble is above threshold
+    if (trebleExpo > 0.15) {
+      const particleCount = Math.floor(1 + trebleExpo * 4); // 1-5 particles
+      spawnParticles(particleCount, avgBeatInterval, trebleExpo);
     }
 
-    // Draw connecting lines between orbs
-    drawConnectingLines(bassIntensity, musicSpeed);
+    // Draw connecting lines between orbs - rhythmic
+    drawConnectingLines(bassIntensity, musicSpeed, smoothBass);
 
-    // Shimmer on high frequencies - white/warm tones, sync with treble
+    // Shimmer - exponential opacity for subtle lows
     const shimmer = document.getElementById('living-bg-shimmer');
     if (shimmer) {
       shimmer.style.opacity = shimmerIntensity;
+      const shimmerScale = 1 + shimmerIntensity * 0.25;
+      shimmer.style.transform = `scale(${shimmerScale})`;
     }
   }
 
@@ -674,9 +696,10 @@
     if (!beamsContainer) return;
 
     const beams = beamsContainer.querySelectorAll('.disco-beam');
-    const isActive = energy > 70;
     
-    beamsContainer.style.opacity = isActive ? Math.min(energy / 150, 0.6) : 0;
+    // Container opacity - exponential: invisible at low energy
+    const energyExpo = Math.pow(energy / 200, 1.5);
+    beamsContainer.style.opacity = Math.min(energyExpo, 0.7);
 
     // Determine music tempo: fast < 400ms, slow > 600ms
     const isFastTempo = avgBeatInterval < 450;
@@ -704,12 +727,14 @@
           triggerChance = 0.65; // 65% chance
         }
         
-        const beamIndex = Math.floor(Math.random() * beams.length);
+        // Beams activate sequentially based on current time (rotational pattern)
+        const rotationOffset = Math.floor(currentTime / 200) % beams.length;
+        const beamIndex = (rotationOffset + Math.floor(i * intensity * 2)) % beams.length;
         
-        // Only this specific beam index range gets triggered
-        const shouldTrigger = i >= beamIndex && i < (beamIndex + maxBeamsPerBeat);
+        // Activate beams in sequence, amount based on intensity
+        const shouldTrigger = i < maxBeamsPerBeat;
         
-        if (shouldTrigger && Math.random() < triggerChance) {
+        if (shouldTrigger && triggerChance > 0.3) {
           // Calculate beam duration based on music tempo
           let beamDuration;
           if (isFastTempo) {
@@ -731,19 +756,17 @@
           beam.style.left = beamPositions[i].x + '%';
           beam.style.top = beamPositions[i].y + '%';
           
-          // Random angle change
-          const angleChange = (Math.random() - 0.5) * 80;
-          beamAngles[i] = (beamAngles[i] + angleChange + 360) % 360;
+          // Angle follows intensity - smooth rotation based on time and frequency
+          const angleSpeed = 0.05 + intensity * 0.15; // Faster at higher intensity
+          const baseAngle = (i * 30) + (currentTime * angleSpeed) % 360;
+          const intensityWobble = Math.sin(currentTime * 0.003 + i) * intensity * 30;
+          beamAngles[i] = (baseAngle + intensityWobble + 360) % 360;
           beam.style.transform = `rotate(${beamAngles[i]}deg)`;
           
-          // More position changes in fast music
-          const positionChangeChance = isFastTempo ? 0.2 : 0.1;
-          if (Math.random() < positionChangeChance) {
-            beamPositions[i] = {
-              x: 15 + Math.random() * 70,
-              y: 15 + Math.random() * 70
-            };
-          }
+          // Position follows a smooth pattern based on time and index (no random)
+          const posX = 20 + (i % 4) * 20 + Math.sin(currentTime * 0.001 + i * 0.5) * intensity * 15;
+          const posY = 20 + Math.floor(i / 4) * 30 + Math.cos(currentTime * 0.001 + i * 0.7) * intensity * 15;
+          beamPositions[i] = { x: posX, y: posY };
         }
       }
       
@@ -762,20 +785,27 @@
 
     const spots = spotlightsContainer.querySelectorAll('.disco-spotlight');
     
+    // Exponential bass for spotlights
+    const bassExpo = Math.pow(bassIntensity, 1.5);
+    
     spots.forEach((spot, i) => {
-      if (isBeat && bassIntensity > 0.5) {
-        // Flash on strong beats
-        spot.style.opacity = 0.5 + bassIntensity * 0.4;
-        
-        // Move to random position on beat
-        const x = 10 + Math.random() * 80;
-        const y = 10 + Math.random() * 80;
-        spot.style.left = x + '%';
-        spot.style.top = y + '%';
-        spot.style.transform = `scale(${1 + bassIntensity * 0.5})`;
-        
-        // Use white or warm amber
-        const useWarm = treble > 140;
+      // Spotlights continuously follow bass level (no random, no beat-only)
+      // Opacity exponential: very dim at low bass
+      spot.style.opacity = bassExpo * 0.8;
+      spot.style.transition = 'opacity 0.15s ease-out, transform 0.15s ease-out, left 0.3s ease-out, top 0.3s ease-out';
+      
+      // Position follows smooth sine pattern based on index and time (no random)
+      const time = Date.now() * 0.001;
+      const speed = 0.3 + bassExpo * 0.3;
+      // Each spotlight has unique movement pattern based on index
+      const x = 25 + (i % 3) * 25 + Math.sin(time * speed + i * 1.5) * bassExpo * 20;
+      const y = 25 + Math.floor(i / 3) * 25 + Math.cos(time * speed + i * 1.2) * bassExpo * 20;
+      spot.style.left = x + '%';
+      spot.style.top = y + '%';
+      spot.style.transform = `scale(${1 + bassExpo * 0.5})`;
+      
+      // Color based on treble level (deterministic, not random)
+      const useWarm = treble > 140;
         if (useWarm) {
           // Warm amber/sun color
           spot.style.background = `radial-gradient(circle,
@@ -789,14 +819,14 @@
             rgba(255, 255, 255, 0.2) 40%,
             transparent 70%)`;
         }
-      } else {
-        spot.style.opacity = 0;
-      }
     });
   }
 
-  // Spawn particle effects - white and warm tones only
-  function spawnParticles(count) {
+  // Spawn particle effects - white and warm tones only, tempo-aware
+  // particleIndex is used for deterministic positioning
+  let particleSpawnIndex = 0;
+  
+  function spawnParticles(count, beatInterval, intensity) {
     const container = document.getElementById('living-bg-particles');
     if (!container) return;
 
@@ -805,27 +835,40 @@
     if (currentParticles >= maxParticles) return;
 
     count = Math.min(count, maxParticles - currentParticles);
+    
+    // Calculate animation speed based on music tempo
+    const isFastMusic = beatInterval < 450;
+    const isSlowMusic = beatInterval > 600;
+    const intVal = intensity || 0.5;
 
     for (let i = 0; i < count; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
       
-      const startX = Math.random() * window.innerWidth;
-      const startY = Math.random() * window.innerHeight;
+      // Deterministic position based on spawn index (golden ratio distribution)
+      particleSpawnIndex++;
+      const goldenRatio = 0.618033988749895;
+      const normalizedPos = (particleSpawnIndex * goldenRatio) % 1;
+      const angle = particleSpawnIndex * goldenRatio * Math.PI * 2;
+      
+      // Distribute across screen using golden ratio spiral
+      const startX = (0.1 + normalizedPos * 0.8) * window.innerWidth;
+      const startY = (0.1 + ((particleSpawnIndex * goldenRatio * 0.7) % 0.8)) * window.innerHeight;
       
       particle.style.left = startX + 'px';
       particle.style.top = startY + 'px';
       
-      const tx = (Math.random() - 0.5) * 250;
-      const ty = (Math.random() - 0.5) * 250;
+      // Movement direction based on angle from spawn index (no random)
+      const moveScale = (isFastMusic ? 300 : isSlowMusic ? 180 : 250) * intVal;
+      const tx = Math.cos(angle) * moveScale;
+      const ty = Math.sin(angle) * moveScale;
       
       particle.style.setProperty('--tx', tx + 'px');
       particle.style.setProperty('--ty', ty + 'px');
       
-      // Use only white or warm amber colors - no rainbow
-      const isWarm = Math.random() > 0.5;
+      // Alternate colors based on index (no random) - warm for even, white for odd
+      const isWarm = (particleSpawnIndex % 2) === 0;
       if (isWarm) {
-        // Warm amber/sun tone
         particle.style.background = `radial-gradient(circle, 
           rgba(255, 220, 150, 1) 0%, 
           rgba(255, 180, 80, 0.9) 50%,
@@ -834,7 +877,6 @@
           0 0 10px rgba(255, 220, 150, 1),
           0 0 18px rgba(255, 180, 80, 0.8)`;
       } else {
-        // Pure white
         particle.style.background = `radial-gradient(circle, 
           rgba(255, 255, 255, 1) 0%, 
           rgba(255, 255, 255, 0.9) 50%,
@@ -843,15 +885,26 @@
           0 0 10px rgba(255, 255, 255, 1),
           0 0 18px rgba(255, 255, 255, 0.8)`;
       }
-      particle.style.filter = 'none'; // No hue rotation
+      particle.style.filter = 'none';
       
-      const size = 3 + Math.random() * 3;
+      // Size based on index pattern (no random)
+      const size = 3 + (particleSpawnIndex % 4);
       particle.style.width = size + 'px';
       particle.style.height = size + 'px';
       
-      const duration = 1.5 + Math.random() * 2;
+      // Animation duration based on music tempo and index (no random)
+      let baseDuration;
+      if (isFastMusic) {
+        baseDuration = 0.8 + (particleSpawnIndex % 5) * 0.24; // 0.8-2s for fast music
+      } else if (isSlowMusic) {
+        baseDuration = 2 + (particleSpawnIndex % 5) * 0.5; // 2-4.5s for slow music
+      } else {
+        baseDuration = 1.5 + (particleSpawnIndex % 5) * 0.4; // 1.5-3.5s for medium
+      }
+      const duration = baseDuration * (0.8 + intVal * 0.4);
+      
       particle.style.animationDuration = duration + 's';
-      particle.style.animationDelay = (Math.random() * 0.2) + 's';
+      particle.style.animationDelay = ((particleSpawnIndex % 5) * 0.04) + 's';
       
       container.appendChild(particle);
       
@@ -861,8 +914,8 @@
     }
   }
 
-  // Draw connecting lines between active orbs - album color + white only
-  function drawConnectingLines(intensity, speed) {
+  // Draw connecting lines between active orbs - completely proportional to bass
+  function drawConnectingLines(intensity, speed, currentBass) {
     if (!linesCanvas || !linesContext) return;
     
     const ctx = linesContext;
@@ -871,14 +924,16 @@
     
     ctx.clearRect(0, 0, width, height);
     
-    if (intensity < 0.3) return;
+    // Lines only visible at meaningful bass levels - exponential visibility
+    const lineIntensity = Math.pow(intensity, 1.4);
+    if (lineIntensity < 0.1) return; // Skip if very low
     
     const orbs = document.querySelectorAll('.living-bg-orb');
     const activeOrbs = [];
     
     orbs.forEach(orb => {
       const opacity = parseFloat(orb.style.opacity || 0);
-      if (opacity > 0.25) {
+      if (opacity > 0.15) { // Only connect visible orbs
         const rect = orb.getBoundingClientRect();
         activeOrbs.push({
           x: rect.left + rect.width / 2,
@@ -890,11 +945,12 @@
     
     if (activeOrbs.length < 2) return;
     
-    const maxDistance = 380 + speed * 180;
+    // Distance exponential: short at low bass, long at high
+    const maxDistance = 200 + lineIntensity * 400;
     
-    // Use album dominant color with white highlights
+    // Color blend exponential
     const lineColor = dominantColor;
-    const whiteBlend = Math.min(intensity, 0.4);
+    const whiteBlend = Math.min(lineIntensity * 1.3, 0.55);
     const r = lineColor.r * (1 - whiteBlend) + 255 * whiteBlend;
     const g = lineColor.g * (1 - whiteBlend) + 255 * whiteBlend;
     const b = lineColor.b * (1 - whiteBlend) + 255 * whiteBlend;
@@ -909,13 +965,17 @@
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < maxDistance) {
-          const opacity = (1 - distance / maxDistance) * Math.min(orb1.opacity, orb2.opacity) * intensity * 0.7;
+          // Opacity exponential
+          const distanceFactor = (1 - distance / maxDistance);
+          const opacityPulse = distanceFactor * Math.min(orb1.opacity, orb2.opacity) * lineIntensity;
           
-          ctx.globalAlpha = opacity;
+          ctx.globalAlpha = opacityPulse;
           ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`;
-          ctx.lineWidth = 1.5 + intensity * 1.5;
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+          
+          // Line width exponential: thin at low, thick at high
+          ctx.lineWidth = 0.3 + lineIntensity * 3;
+          ctx.shadowBlur = 3 + lineIntensity * 18;
+          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${lineIntensity * 0.7})`;
           
           ctx.beginPath();
           ctx.moveTo(orb1.x, orb1.y);
