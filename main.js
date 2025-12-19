@@ -127,11 +127,11 @@ function createMiniPlayer() {
 
   miniPlayerWindow = new BrowserWindow({
     width: 300,
-    height: 100,
+    height: 120,
     minWidth: 300,
-    minHeight: 100,
+    minHeight: 120,
     maxWidth: 300,
-    maxHeight: 100,
+    maxHeight: 120,
     frame: false,
     transparent: true,
     alwaysOnTop: true,

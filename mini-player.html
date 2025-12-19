@@ -1,55 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mini Player</title>
   <link rel="stylesheet" href="styles/mini-player.css">
 </head>
+
 <body>
   <div class="mini-player">
     <button class="close-btn" id="close-btn" title="Close">
       <svg viewBox="0 0 24 24">
-        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        <path
+          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
       </svg>
     </button>
-    
-    <div class="album-art">
-      <img id="album-img" src="" alt="Album Art">
-    </div>
-    
-    <div class="song-info">
-      <div class="song-title" id="song-title">Not Playing</div>
-      <div class="song-artist" id="song-artist">-</div>
-      
-      <div class="controls">
-        <button class="control-btn" id="prev-btn" title="Previous">
-          <svg viewBox="0 0 24 24">
-            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-          </svg>
-        </button>
-        
-        <button class="control-btn play-pause" id="play-btn" title="Play/Pause">
-          <svg viewBox="0 0 24 24" id="play-icon">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-          <svg viewBox="0 0 24 24" id="pause-icon" style="display: none;">
-            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-          </svg>
-        </button>
-        
-        <button class="control-btn" id="next-btn" title="Next">
-          <svg viewBox="0 0 24 24">
-            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-          </svg>
-        </button>
+
+    <div class="player-content">
+      <div class="album-art">
+        <img id="album-img" src="" alt="Album Art">
       </div>
+
+      <div class="song-info">
+        <div class="song-title" id="song-title">Not Playing</div>
+        <div class="song-artist" id="song-artist">-</div>
+
+        <div class="controls">
+          <button class="control-btn" id="prev-btn" title="Previous">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+            </svg>
+          </button>
+
+          <button class="control-btn play-pause" id="play-btn" title="Play/Pause">
+            <svg viewBox="0 0 24 24" id="play-icon">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            <svg viewBox="0 0 24 24" id="pause-icon" style="display: none;">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+          </button>
+
+          <button class="control-btn" id="next-btn" title="Next">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-container" id="progress-container">
+      <span class="time-current" id="time-current">0:00</span>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="time-total" id="time-total">0:00</span>
     </div>
   </div>
 
   <script>
     const { ipcRenderer } = require('electron');
-    
+
     // DOM Elements
     const albumImg = document.getElementById('album-img');
     const songTitle = document.getElementById('song-title');
@@ -60,13 +73,16 @@
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const closeBtn = document.getElementById('close-btn');
-    
+    const progressFill = document.getElementById('progress-fill');
+    const timeCurrent = document.getElementById('time-current');
+    const timeTotal = document.getElementById('time-total');
+
     // Update player info
     ipcRenderer.on('player-update', (event, data) => {
       if (data.title) songTitle.textContent = data.title;
       if (data.artist) songArtist.textContent = data.artist;
       if (data.thumbnail) albumImg.src = data.thumbnail;
-      
+
       if (data.isPlaying !== undefined) {
         if (data.isPlaying) {
           playIcon.style.display = 'none';
@@ -76,27 +92,39 @@
           pauseIcon.style.display = 'none';
         }
       }
+
+      // Update progress bar
+      if (data.currentTime !== undefined) {
+        timeCurrent.textContent = data.currentTime;
+      }
+      if (data.totalTime !== undefined) {
+        timeTotal.textContent = data.totalTime;
+      }
+      if (data.progress !== undefined) {
+        progressFill.style.width = data.progress + '%';
+      }
     });
-    
+
     // Control buttons
     playBtn.addEventListener('click', () => {
       ipcRenderer.send('mini-player-control', 'play-pause');
     });
-    
+
     prevBtn.addEventListener('click', () => {
       ipcRenderer.send('mini-player-control', 'previous');
     });
-    
+
     nextBtn.addEventListener('click', () => {
       ipcRenderer.send('mini-player-control', 'next');
     });
-    
+
     closeBtn.addEventListener('click', () => {
       ipcRenderer.send('mini-player-control', 'close');
     });
-    
+
     // Request initial state
     ipcRenderer.send('mini-player-ready');
   </script>
 </body>
+
 </html>

@@ -1497,15 +1497,58 @@
       observer.observe(playerBar, { subtree: true, childList: true, attributes: true });
     }
 
-    // Also watch for play/pause state changes
+    // Also watch for play/pause state changes and progress
     setInterval(() => {
       if (window.ytMusicApp && window.ytMusicApp.send) {
         const playBtn = document.querySelector('.play-pause-button');
         const isPlaying = playBtn?.getAttribute('title')?.toLowerCase().includes('pause') ||
           playBtn?.getAttribute('aria-label')?.toLowerCase().includes('pause');
-        window.ytMusicApp.send('track-info-update', { isPlaying });
+
+        // Get time info from player bar
+        const timeInfo = document.querySelector('.time-info.ytmusic-player-bar');
+        const progressBar = document.querySelector('#progress-bar');
+
+        let currentTime = '0:00';
+        let totalTime = '0:00';
+        let progress = 0;
+
+        if (timeInfo) {
+          const timeText = timeInfo.textContent?.trim() || '';
+          const timeParts = timeText.split('/').map(t => t.trim());
+          if (timeParts.length === 2) {
+            currentTime = timeParts[0];
+            totalTime = timeParts[1];
+          }
+        }
+
+        // Try to get progress from slider
+        if (progressBar) {
+          const value = progressBar.getAttribute('value');
+          if (value) {
+            progress = parseFloat(value);
+          }
+        }
+
+        // Alternative: try tp-yt-paper-slider
+        if (progress === 0) {
+          const slider = document.querySelector('#progress-bar tp-yt-paper-slider, tp-yt-paper-slider#progress-bar, #sliderBar');
+          if (slider) {
+            const value = slider.getAttribute('value');
+            const max = slider.getAttribute('max') || slider.getAttribute('aria-valuemax');
+            if (value && max) {
+              progress = (parseFloat(value) / parseFloat(max)) * 100;
+            }
+          }
+        }
+
+        window.ytMusicApp.send('track-info-update', {
+          isPlaying,
+          currentTime,
+          totalTime,
+          progress
+        });
       }
-    }, 1000);
+    }, 500);
   }
 
   // Resume audio context on user interaction
