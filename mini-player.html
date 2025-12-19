@@ -27,6 +27,13 @@
         <div class="song-artist" id="song-artist">-</div>
 
         <div class="controls">
+          <button class="control-btn small" id="dislike-btn" title="Dislike">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z" />
+            </svg>
+          </button>
+
           <button class="control-btn" id="prev-btn" title="Previous">
             <svg viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
@@ -45,6 +52,13 @@
           <button class="control-btn" id="next-btn" title="Next">
             <svg viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+            </svg>
+          </button>
+
+          <button class="control-btn small" id="like-btn" title="Like">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
             </svg>
           </button>
         </div>
@@ -73,6 +87,8 @@
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const closeBtn = document.getElementById('close-btn');
+    const likeBtn = document.getElementById('like-btn');
+    const dislikeBtn = document.getElementById('dislike-btn');
     const progressFill = document.getElementById('progress-fill');
     const timeCurrent = document.getElementById('time-current');
     const timeTotal = document.getElementById('time-total');
@@ -116,6 +132,14 @@
 
     nextBtn.addEventListener('click', () => {
       ipcRenderer.send('mini-player-control', 'next');
+    });
+
+    likeBtn.addEventListener('click', () => {
+      ipcRenderer.send('mini-player-control', 'like');
+    });
+
+    dislikeBtn.addEventListener('click', () => {
+      ipcRenderer.send('mini-player-control', 'dislike');
     });
 
     closeBtn.addEventListener('click', () => {

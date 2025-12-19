@@ -205,6 +205,16 @@ function setupMiniPlayerIPC() {
           document.querySelector('.previous-button')?.click();
         `);
         break;
+      case 'like':
+        mainWindow.webContents.executeJavaScript(`
+          document.querySelector('.like.ytmusic-like-button-renderer button, #like-button-renderer button, .like-button-renderer-like-button')?.click();
+        `);
+        break;
+      case 'dislike':
+        mainWindow.webContents.executeJavaScript(`
+          document.querySelector('.dislike.ytmusic-like-button-renderer button, #dislike-button-renderer button, .like-button-renderer-dislike-button')?.click();
+        `);
+        break;
     }
   });
 

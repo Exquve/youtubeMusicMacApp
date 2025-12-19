@@ -169,6 +169,22 @@ body {
   height: 18px;
 }
 
+/* Small buttons for like/dislike */
+.control-btn.small {
+  width: 26px;
+  height: 26px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.control-btn.small svg {
+  width: 13px;
+  height: 13px;
+}
+
+.control-btn.small:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Close Button */
 .close-btn {
   position: absolute;
