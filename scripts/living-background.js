@@ -1541,11 +1541,33 @@
           }
         }
 
+        // Check like/dislike status
+        const likeButton = document.querySelector('.like.ytmusic-like-button-renderer, #like-button-renderer');
+        const dislikeButton = document.querySelector('.dislike.ytmusic-like-button-renderer, #dislike-button-renderer');
+
+        let isLiked = false;
+        let isDisliked = false;
+
+        if (likeButton) {
+          // Check if like button is active (aria-pressed="true" or has specific class)
+          isLiked = likeButton.getAttribute('aria-pressed') === 'true' ||
+            likeButton.classList.contains('style-default-active') ||
+            likeButton.querySelector('[aria-pressed="true"]') !== null;
+        }
+
+        if (dislikeButton) {
+          isDisliked = dislikeButton.getAttribute('aria-pressed') === 'true' ||
+            dislikeButton.classList.contains('style-default-active') ||
+            dislikeButton.querySelector('[aria-pressed="true"]') !== null;
+        }
+
         window.ytMusicApp.send('track-info-update', {
           isPlaying,
           currentTime,
           totalTime,
-          progress
+          progress,
+          isLiked,
+          isDisliked
         });
       }
     }, 500);
