@@ -1521,25 +1521,26 @@
           }
         }
 
-        // Try to get progress from slider
-        if (progressBar) {
-          const value = progressBar.getAttribute('value');
-          if (value) {
-            progress = parseFloat(value);
+        // Calculate progress from time strings
+        const parseTime = (timeStr) => {
+          const parts = timeStr.split(':').map(Number);
+          if (parts.length === 2) {
+            return parts[0] * 60 + parts[1];
+          } else if (parts.length === 3) {
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
           }
+          return 0;
+        };
+
+        const currentSeconds = parseTime(currentTime);
+        const totalSeconds = parseTime(totalTime);
+
+        if (totalSeconds > 0) {
+          progress = (currentSeconds / totalSeconds) * 100;
         }
 
-        // Alternative: try tp-yt-paper-slider
-        if (progress === 0) {
-          const slider = document.querySelector('#progress-bar tp-yt-paper-slider, tp-yt-paper-slider#progress-bar, #sliderBar');
-          if (slider) {
-            const value = slider.getAttribute('value');
-            const max = slider.getAttribute('max') || slider.getAttribute('aria-valuemax');
-            if (value && max) {
-              progress = (parseFloat(value) / parseFloat(max)) * 100;
-            }
-          }
-        }
+        // Ensure progress is capped between 0 and 100
+        progress = Math.max(0, Math.min(100, progress));
 
         // Check like/dislike status
         let isLiked = false;
