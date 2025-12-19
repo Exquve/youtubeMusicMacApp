@@ -1,0 +1,159 @@
+/* Mini Player Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.mini-player {
+  width: 300px;
+  height: 100px;
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Album Art */
+.album-art {
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.album-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Song Info */
+.song-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.song-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.song-artist {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.control-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.control-btn.play-pause {
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.control-btn.play-pause:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn.play-pause svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Close Button */
+.close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  color: rgba(255, 255, 255, 0.6);
+  -webkit-app-region: no-drag;
+  opacity: 0;
+}
+
+.mini-player:hover .close-btn {
+  opacity: 1;
+}
+
+.close-btn:hover {
+  background: rgba(255, 77, 77, 0.8);
+  color: #ffffff;
+}
+
+.close-btn svg {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+}

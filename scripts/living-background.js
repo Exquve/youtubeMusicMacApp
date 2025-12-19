@@ -539,6 +539,70 @@
     const container = document.createElement('div');
     container.id = 'living-bg-toggle-container';
 
+    // Mini Player Button (added to the left of Living BG toggle)
+    const miniPlayerBtn = document.createElement('button');
+    miniPlayerBtn.id = 'mini-player-btn';
+    miniPlayerBtn.title = 'Open Mini Player';
+
+    // Create SVG programmatically to avoid TrustedHTML issues
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '14');
+    svg.setAttribute('height', '14');
+    svg.setAttribute('fill', 'currentColor');
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', 'M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z');
+    svg.appendChild(path);
+
+    const span = document.createElement('span');
+    span.textContent = 'Mini';
+
+    miniPlayerBtn.appendChild(svg);
+    miniPlayerBtn.appendChild(span);
+
+    miniPlayerBtn.addEventListener('click', () => {
+      if (window.ytMusicApp && window.ytMusicApp.send) {
+        window.ytMusicApp.send('toggle-mini-player');
+      }
+    });
+
+    // Add mini player button styles
+    const miniPlayerStyles = document.createElement('style');
+    miniPlayerStyles.id = 'mini-player-btn-styles';
+    miniPlayerStyles.textContent = `
+      #mini-player-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 12px;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-right: 8px;
+      }
+      
+      #mini-player-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+      }
+      
+      #mini-player-btn:active {
+        transform: scale(0.95);
+      }
+      
+      #mini-player-btn svg {
+        opacity: 0.9;
+      }
+    `;
+    document.head.appendChild(miniPlayerStyles);
+
     const label = document.createElement('span');
     label.id = 'living-bg-toggle-label';
     label.textContent = 'Living BG';
@@ -559,6 +623,7 @@
       }
     });
 
+    container.appendChild(miniPlayerBtn);
     container.appendChild(label);
     container.appendChild(toggle);
     document.body.appendChild(container);
@@ -1365,14 +1430,82 @@
 
   // Watch for song changes to update color
   function watchSongChanges() {
-    const observer = new MutationObserver(() => {
-      setTimeout(extractDominantColor, 500);
-    });
+    // Function to extract and send track info to mini player
+    const updateTrackInfo = () => {
+      setTimeout(() => {
+        extractDominantColor();
+
+        // Send track info to mini player
+        if (window.ytMusicApp && window.ytMusicApp.send) {
+          const titleEl = document.querySelector('.title.ytmusic-player-bar');
+          const artistEl = document.querySelector('.byline.ytmusic-player-bar');
+          const playBtn = document.querySelector('.play-pause-button');
+
+          // Try multiple selectors for thumbnail
+          let thumbnail = '';
+          const thumbnailSelectors = [
+            'ytmusic-player-bar .image img',
+            'ytmusic-player-bar img.image',
+            '.middle-controls .image img',
+            'ytmusic-player-bar .thumbnail img',
+            '#song-image img',
+            '.player-bar img'
+          ];
+
+          for (const selector of thumbnailSelectors) {
+            const el = document.querySelector(selector);
+            if (el && el.src) {
+              thumbnail = el.src;
+              break;
+            }
+          }
+
+          // If still no thumbnail, try to get from style background-image
+          if (!thumbnail) {
+            const bgEl = document.querySelector('ytmusic-player-bar .image');
+            if (bgEl) {
+              const bgImage = window.getComputedStyle(bgEl).backgroundImage;
+              if (bgImage && bgImage !== 'none') {
+                thumbnail = bgImage.replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '');
+              }
+            }
+          }
+
+          const isPlaying = playBtn?.getAttribute('title')?.toLowerCase().includes('pause') ||
+            playBtn?.getAttribute('aria-label')?.toLowerCase().includes('pause');
+
+          const trackInfo = {
+            title: titleEl?.textContent?.trim() || 'Not Playing',
+            artist: artistEl?.textContent?.trim() || '-',
+            thumbnail: thumbnail,
+            isPlaying: isPlaying
+          };
+
+          window.ytMusicApp.send('track-info-update', trackInfo);
+        }
+      }, 500);
+    };
+
+    // Initial update
+    setTimeout(updateTrackInfo, 2000);
+
+    // Watch for changes
+    const observer = new MutationObserver(updateTrackInfo);
 
     const playerBar = document.querySelector('ytmusic-player-bar');
     if (playerBar) {
-      observer.observe(playerBar, { subtree: true, childList: true });
+      observer.observe(playerBar, { subtree: true, childList: true, attributes: true });
     }
+
+    // Also watch for play/pause state changes
+    setInterval(() => {
+      if (window.ytMusicApp && window.ytMusicApp.send) {
+        const playBtn = document.querySelector('.play-pause-button');
+        const isPlaying = playBtn?.getAttribute('title')?.toLowerCase().includes('pause') ||
+          playBtn?.getAttribute('aria-label')?.toLowerCase().includes('pause');
+        window.ytMusicApp.send('track-info-update', { isPlaying });
+      }
+    }, 1000);
   }
 
   // Resume audio context on user interaction

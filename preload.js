@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('ytMusicApp', {
 
     // Send messages to main process
     send: (channel, data) => {
-        const validChannels = ['media-control', 'window-control'];
+        const validChannels = ['media-control', 'window-control', 'toggle-mini-player', 'track-info-update'];
         if (validChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }

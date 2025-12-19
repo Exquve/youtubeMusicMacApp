@@ -3,6 +3,13 @@ const path = require('path');
 const fs = require('fs');
 
 let mainWindow;
+let miniPlayerWindow = null;
+let currentTrackInfo = {
+  title: 'Not Playing',
+  artist: '-',
+  thumbnail: '',
+  isPlaying: false
+};
 
 // Read custom CSS
 function getCustomCSS() {
@@ -111,6 +118,105 @@ function createWindow() {
   }
 }
 
+// Create Mini Player Window
+function createMiniPlayer() {
+  if (miniPlayerWindow) {
+    miniPlayerWindow.focus();
+    return;
+  }
+
+  miniPlayerWindow = new BrowserWindow({
+    width: 300,
+    height: 100,
+    minWidth: 300,
+    minHeight: 100,
+    maxWidth: 300,
+    maxHeight: 100,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    hasShadow: true,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+
+  miniPlayerWindow.loadFile('mini-player.html');
+
+  miniPlayerWindow.on('closed', () => {
+    miniPlayerWindow = null;
+  });
+
+  // Send current track info when mini player is ready
+  miniPlayerWindow.webContents.on('did-finish-load', () => {
+    if (miniPlayerWindow) {
+      miniPlayerWindow.webContents.send('player-update', currentTrackInfo);
+    }
+  });
+}
+
+// Setup Mini Player IPC handlers
+function setupMiniPlayerIPC() {
+  // Handle toggle mini player
+  ipcMain.on('toggle-mini-player', () => {
+    if (miniPlayerWindow) {
+      miniPlayerWindow.close();
+    } else {
+      createMiniPlayer();
+    }
+  });
+
+  // Handle mini player ready
+  ipcMain.on('mini-player-ready', () => {
+    if (miniPlayerWindow) {
+      miniPlayerWindow.webContents.send('player-update', currentTrackInfo);
+    }
+  });
+
+  // Handle mini player controls
+  ipcMain.on('mini-player-control', (event, action) => {
+    if (action === 'close') {
+      if (miniPlayerWindow) {
+        miniPlayerWindow.close();
+      }
+      return;
+    }
+
+    if (!mainWindow) return;
+
+    switch (action) {
+      case 'play-pause':
+        mainWindow.webContents.executeJavaScript(`
+          document.querySelector('.play-pause-button')?.click();
+        `);
+        break;
+      case 'next':
+        mainWindow.webContents.executeJavaScript(`
+          document.querySelector('.next-button')?.click();
+        `);
+        break;
+      case 'previous':
+        mainWindow.webContents.executeJavaScript(`
+          document.querySelector('.previous-button')?.click();
+        `);
+        break;
+    }
+  });
+
+  // Handle track info updates from main window
+  ipcMain.on('track-info-update', (event, info) => {
+    currentTrackInfo = { ...currentTrackInfo, ...info };
+    if (miniPlayerWindow) {
+      miniPlayerWindow.webContents.send('player-update', currentTrackInfo);
+    }
+  });
+}
+
 // Register media key handlers
 function registerMediaKeys() {
   // Play/Pause
@@ -145,6 +251,7 @@ function registerMediaKeys() {
 app.whenReady().then(() => {
   createWindow();
   registerMediaKeys();
+  setupMiniPlayerIPC();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
