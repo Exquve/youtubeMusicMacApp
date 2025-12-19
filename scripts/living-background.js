@@ -14,6 +14,9 @@
 
   console.log('[Living BG] Initializing audio visualizer...');
 
+  // === TOGGLE STATE - Default OFF ===
+  let isEnabled = false;
+
   let audioContext = null;
   let analyser = null;
   let dataArray = null;
@@ -32,7 +35,7 @@
   let beatInterval = 500; // ms between beats
   let avgBeatInterval = 500;
   let beatHistory = [];
-  
+
   // Initialize beam angles and positions deterministically based on index
   for (let i = 0; i < 12; i++) {
     // Evenly distributed angles (0, 30, 60, 90... 330 degrees)
@@ -94,7 +97,7 @@
     const discoBeams = document.createElement('div');
     discoBeams.id = 'disco-beams';
     bg.appendChild(discoBeams);
-    
+
     for (let i = 0; i < 12; i++) {
       const beam = document.createElement('div');
       beam.className = 'disco-beam';
@@ -106,7 +109,7 @@
     const spotlights = document.createElement('div');
     spotlights.id = 'disco-spotlights';
     bg.appendChild(spotlights);
-    
+
     for (let i = 0; i < 6; i++) {
       const spot = document.createElement('div');
       spot.className = 'disco-spotlight';
@@ -143,6 +146,74 @@
     const style = document.createElement('style');
     style.id = 'living-bg-styles';
     style.textContent = `
+      /* === TOGGLE SWITCH STYLES === */
+      #living-bg-toggle-container {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+        -webkit-app-region: no-drag;
+        pointer-events: auto;
+      }
+      
+      #living-bg-toggle-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 0.02em;
+        user-select: none;
+      }
+      
+      #living-bg-toggle {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        outline: none;
+        padding: 0;
+      }
+      
+      #living-bg-toggle:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      
+      #living-bg-toggle::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+      
+      #living-bg-toggle.active {
+        background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+      }
+      
+      #living-bg-toggle.active::after {
+        left: 18px;
+        background: #ffffff;
+      }
+
+
       /* Base - mostly black, only lit when music plays */
       #living-bg {
         position: fixed;
@@ -461,6 +532,79 @@
     document.documentElement.style.setProperty('--bg-b', dominantColor.b);
   }
 
+  // Create toggle switch UI
+  function createToggleSwitch() {
+    if (document.getElementById('living-bg-toggle-container')) return;
+
+    const container = document.createElement('div');
+    container.id = 'living-bg-toggle-container';
+
+    const label = document.createElement('span');
+    label.id = 'living-bg-toggle-label';
+    label.textContent = 'Living BG';
+
+    const toggle = document.createElement('button');
+    toggle.id = 'living-bg-toggle';
+    toggle.title = 'Toggle Living Background';
+    toggle.setAttribute('aria-label', 'Toggle Living Background');
+
+    toggle.addEventListener('click', () => {
+      isEnabled = !isEnabled;
+      toggle.classList.toggle('active', isEnabled);
+
+      if (isEnabled) {
+        enableLivingBackground();
+      } else {
+        disableLivingBackground();
+      }
+    });
+
+    container.appendChild(label);
+    container.appendChild(toggle);
+    document.body.appendChild(container);
+
+    console.log('[Living BG] Toggle switch created');
+  }
+
+  // Enable the living background
+  function enableLivingBackground() {
+    console.log('[Living BG] Enabling...');
+
+    const bg = document.getElementById('living-bg');
+    if (bg) {
+      bg.style.display = 'block';
+    }
+
+    // Extract colors from current album art
+    extractDominantColor();
+
+    // Try to connect audio if not already connected
+    if (!isConnected) {
+      connectAudio();
+    }
+
+    // Start visualization if connected
+    if (isConnected && !animationId) {
+      startVisualization();
+    }
+  }
+
+  // Disable the living background
+  function disableLivingBackground() {
+    console.log('[Living BG] Disabling...');
+
+    const bg = document.getElementById('living-bg');
+    if (bg) {
+      bg.style.display = 'none';
+    }
+
+    // Stop animation loop
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  }
+
   // Connect to audio element
   async function connectAudio() {
     if (isConnected) return;
@@ -553,7 +697,7 @@
 
   // Update visual effects based on audio - Sync with music rhythm
   function updateVisuals(frequencies) {
-    if (!backgroundEl) return;
+    if (!backgroundEl || !isEnabled) return;
 
     const { bass, mids, treble, energy } = frequencies;
 
@@ -582,24 +726,24 @@
     // Detect beat timing for rhythm sync - improved beat tracking
     const now = Date.now();
     const timeSinceLastBeat = now - lastBeatTime;
-    
+
     // Only register beat if enough time passed based on music tempo
     const minBeatInterval = avgBeatInterval * 0.7; // At least 70% of average beat interval
-    
+
     if (isBeat && bassIntensity > 0.6 && timeSinceLastBeat > minBeatInterval) {
       const currentInterval = timeSinceLastBeat;
-      
+
       // Track beat history for more accurate tempo
       beatHistory.push(currentInterval);
       if (beatHistory.length > 8) {
         beatHistory.shift();
       }
-      
+
       // Calculate average beat interval from recent beats
       if (beatHistory.length >= 3) {
         avgBeatInterval = beatHistory.reduce((a, b) => a + b, 0) / beatHistory.length;
       }
-      
+
       beatInterval = currentInterval;
       lastBeatTime = now;
     }
@@ -614,7 +758,7 @@
     // Wave overlay - very subtle at low energy
     const waveOpacity = Math.pow(Math.min(smoothEnergy / 200, 1), 1.5) * 0.5;
     document.documentElement.style.setProperty('--wave-opacity', waveOpacity);
-    
+
     // Background brightness - exponential: dark at low bass, bright at high
     const bassBrightness = Math.pow(smoothBass / 255, 1.5); // 0-1 exponential
     const brightnessBoost = bassBrightness * 0.4; // Max 40% boost
@@ -632,25 +776,25 @@
 
       // Exponential curve: very dim at low bass, bright at high
       const bassExpo = Math.pow(bassIntensity, 1.4); // Exponential for darker lows
-      
+
       // NO RANDOM FLASH - continuous brightness following bass level
       // Each orb has slight variation based on index for natural look
       const orbVariation = 0.85 + (Math.sin(i * 0.7) * 0.15); // 0.7 to 1.0 variation
       const orbOpacity = bassExpo * 0.85 * orbVariation;
-      
+
       // Always set opacity based on current bass (no conditions)
       orb.style.opacity = orbOpacity;
       orb.style.filter = 'none';
-      
+
       // Smooth organic movement using sine waves (not random)
       const time = Date.now() * 0.001;
       const speed = 0.5 + bassExpo * 0.5; // Movement speed scales with bass
       const moveScale = bassExpo * 35;
-      
+
       // Each orb moves in its own pattern based on index
       const moveX = Math.sin(i * 1.2 + time * speed) * moveScale;
       const moveY = Math.cos(i * 0.8 + time * speed) * moveScale;
-      
+
       // Scale: 1.0 at low, 1.35 at max
       const scale = 1 + bassExpo * 0.35;
       orb.style.transform = `translate(${moveX}px, ${moveY}px) scale(${scale})`;
@@ -696,7 +840,7 @@
     if (!beamsContainer) return;
 
     const beams = beamsContainer.querySelectorAll('.disco-beam');
-    
+
     // Container opacity - exponential: invisible at low energy
     const energyExpo = Math.pow(energy / 200, 1.5);
     beamsContainer.style.opacity = Math.min(energyExpo, 0.7);
@@ -708,11 +852,11 @@
     beams.forEach((beam, i) => {
       // Check if this beam should be active based on beat timing
       const isBeamActive = currentTime < beamActiveUntil[i];
-      
+
       if (isBeat && intensity > 0.6) {
         // Adjust beam count based on tempo
         let maxBeamsPerBeat, triggerChance;
-        
+
         if (isFastTempo) {
           // Fast music: many beams, very high trigger chance
           maxBeamsPerBeat = Math.ceil(3 + intensity * 5); // 3-8 beams
@@ -726,14 +870,14 @@
           maxBeamsPerBeat = Math.ceil(1 + intensity * 3); // 1-4 beams
           triggerChance = 0.65; // 65% chance
         }
-        
+
         // Beams activate sequentially based on current time (rotational pattern)
         const rotationOffset = Math.floor(currentTime / 200) % beams.length;
         const beamIndex = (rotationOffset + Math.floor(i * intensity * 2)) % beams.length;
-        
+
         // Activate beams in sequence, amount based on intensity
         const shouldTrigger = i < maxBeamsPerBeat;
-        
+
         if (shouldTrigger && triggerChance > 0.3) {
           // Calculate beam duration based on music tempo
           let beamDuration;
@@ -744,32 +888,32 @@
             // Slow music: longer beams (70-90% of interval)
             beamDuration = Math.min(avgBeatInterval * 0.85, 700);
           }
-          
+
           beamActiveUntil[i] = currentTime + beamDuration;
-          
+
           // Set beam properties
           const length = 350 + intensity * 450;
           beam.style.width = length + 'px';
           beam.style.opacity = 0.6 + intensity * 0.4;
-          
+
           // Set position
           beam.style.left = beamPositions[i].x + '%';
           beam.style.top = beamPositions[i].y + '%';
-          
+
           // Angle follows intensity - smooth rotation based on time and frequency
           const angleSpeed = 0.05 + intensity * 0.15; // Faster at higher intensity
           const baseAngle = (i * 30) + (currentTime * angleSpeed) % 360;
           const intensityWobble = Math.sin(currentTime * 0.003 + i) * intensity * 30;
           beamAngles[i] = (baseAngle + intensityWobble + 360) % 360;
           beam.style.transform = `rotate(${beamAngles[i]}deg)`;
-          
+
           // Position follows a smooth pattern based on time and index (no random)
           const posX = 20 + (i % 4) * 20 + Math.sin(currentTime * 0.001 + i * 0.5) * intensity * 15;
           const posY = 20 + Math.floor(i / 4) * 30 + Math.cos(currentTime * 0.001 + i * 0.7) * intensity * 15;
           beamPositions[i] = { x: posX, y: posY };
         }
       }
-      
+
       // Turn off beam if duration expired
       if (!isBeamActive) {
         beam.style.width = '0px';
@@ -784,16 +928,16 @@
     if (!spotlightsContainer) return;
 
     const spots = spotlightsContainer.querySelectorAll('.disco-spotlight');
-    
+
     // Exponential bass for spotlights
     const bassExpo = Math.pow(bassIntensity, 1.5);
-    
+
     spots.forEach((spot, i) => {
       // Spotlights continuously follow bass level (no random, no beat-only)
       // Opacity exponential: very dim at low bass
       spot.style.opacity = bassExpo * 0.8;
       spot.style.transition = 'opacity 0.15s ease-out, transform 0.15s ease-out, left 0.3s ease-out, top 0.3s ease-out';
-      
+
       // Position follows smooth sine pattern based on index and time (no random)
       const time = Date.now() * 0.001;
       const speed = 0.3 + bassExpo * 0.3;
@@ -803,29 +947,29 @@
       spot.style.left = x + '%';
       spot.style.top = y + '%';
       spot.style.transform = `scale(${1 + bassExpo * 0.5})`;
-      
+
       // Color based on treble level (deterministic, not random)
       const useWarm = treble > 140;
-        if (useWarm) {
-          // Warm amber/sun color
-          spot.style.background = `radial-gradient(circle,
+      if (useWarm) {
+        // Warm amber/sun color
+        spot.style.background = `radial-gradient(circle,
             rgba(255, 200, 100, 0.5) 0%,
             rgba(255, 180, 80, 0.3) 40%,
             transparent 70%)`;
-        } else {
-          // Pure white
-          spot.style.background = `radial-gradient(circle,
+      } else {
+        // Pure white
+        spot.style.background = `radial-gradient(circle,
             rgba(255, 255, 255, 0.4) 0%,
             rgba(255, 255, 255, 0.2) 40%,
             transparent 70%)`;
-        }
+      }
     });
   }
 
   // Spawn particle effects - white and warm tones only, tempo-aware
   // particleIndex is used for deterministic positioning
   let particleSpawnIndex = 0;
-  
+
   function spawnParticles(count, beatInterval, intensity) {
     const container = document.getElementById('living-bg-particles');
     if (!container) return;
@@ -835,7 +979,7 @@
     if (currentParticles >= maxParticles) return;
 
     count = Math.min(count, maxParticles - currentParticles);
-    
+
     // Calculate animation speed based on music tempo
     const isFastMusic = beatInterval < 450;
     const isSlowMusic = beatInterval > 600;
@@ -844,28 +988,28 @@
     for (let i = 0; i < count; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle';
-      
+
       // Deterministic position based on spawn index (golden ratio distribution)
       particleSpawnIndex++;
       const goldenRatio = 0.618033988749895;
       const normalizedPos = (particleSpawnIndex * goldenRatio) % 1;
       const angle = particleSpawnIndex * goldenRatio * Math.PI * 2;
-      
+
       // Distribute across screen using golden ratio spiral
       const startX = (0.1 + normalizedPos * 0.8) * window.innerWidth;
       const startY = (0.1 + ((particleSpawnIndex * goldenRatio * 0.7) % 0.8)) * window.innerHeight;
-      
+
       particle.style.left = startX + 'px';
       particle.style.top = startY + 'px';
-      
+
       // Movement direction based on angle from spawn index (no random)
       const moveScale = (isFastMusic ? 300 : isSlowMusic ? 180 : 250) * intVal;
       const tx = Math.cos(angle) * moveScale;
       const ty = Math.sin(angle) * moveScale;
-      
+
       particle.style.setProperty('--tx', tx + 'px');
       particle.style.setProperty('--ty', ty + 'px');
-      
+
       // Alternate colors based on index (no random) - warm for even, white for odd
       const isWarm = (particleSpawnIndex % 2) === 0;
       if (isWarm) {
@@ -886,12 +1030,12 @@
           0 0 18px rgba(255, 255, 255, 0.8)`;
       }
       particle.style.filter = 'none';
-      
+
       // Size based on index pattern (no random)
       const size = 3 + (particleSpawnIndex % 4);
       particle.style.width = size + 'px';
       particle.style.height = size + 'px';
-      
+
       // Animation duration based on music tempo and index (no random)
       let baseDuration;
       if (isFastMusic) {
@@ -902,12 +1046,12 @@
         baseDuration = 1.5 + (particleSpawnIndex % 5) * 0.4; // 1.5-3.5s for medium
       }
       const duration = baseDuration * (0.8 + intVal * 0.4);
-      
+
       particle.style.animationDuration = duration + 's';
       particle.style.animationDelay = ((particleSpawnIndex % 5) * 0.04) + 's';
-      
+
       container.appendChild(particle);
-      
+
       setTimeout(() => {
         particle.remove();
       }, (duration + 0.2) * 1000);
@@ -917,20 +1061,20 @@
   // Draw connecting lines between active orbs - completely proportional to bass
   function drawConnectingLines(intensity, speed, currentBass) {
     if (!linesCanvas || !linesContext) return;
-    
+
     const ctx = linesContext;
     const width = linesCanvas.width;
     const height = linesCanvas.height;
-    
+
     ctx.clearRect(0, 0, width, height);
-    
+
     // Lines only visible at meaningful bass levels - exponential visibility
     const lineIntensity = Math.pow(intensity, 1.4);
     if (lineIntensity < 0.1) return; // Skip if very low
-    
+
     const orbs = document.querySelectorAll('.living-bg-orb');
     const activeOrbs = [];
-    
+
     orbs.forEach(orb => {
       const opacity = parseFloat(orb.style.opacity || 0);
       if (opacity > 0.15) { // Only connect visible orbs
@@ -942,41 +1086,41 @@
         });
       }
     });
-    
+
     if (activeOrbs.length < 2) return;
-    
+
     // Distance exponential: short at low bass, long at high
     const maxDistance = 200 + lineIntensity * 400;
-    
+
     // Color blend exponential
     const lineColor = dominantColor;
     const whiteBlend = Math.min(lineIntensity * 1.3, 0.55);
     const r = lineColor.r * (1 - whiteBlend) + 255 * whiteBlend;
     const g = lineColor.g * (1 - whiteBlend) + 255 * whiteBlend;
     const b = lineColor.b * (1 - whiteBlend) + 255 * whiteBlend;
-    
+
     for (let i = 0; i < activeOrbs.length; i++) {
       for (let j = i + 1; j < activeOrbs.length; j++) {
         const orb1 = activeOrbs[i];
         const orb2 = activeOrbs[j];
-        
+
         const dx = orb2.x - orb1.x;
         const dy = orb2.y - orb1.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance < maxDistance) {
           // Opacity exponential
           const distanceFactor = (1 - distance / maxDistance);
           const opacityPulse = distanceFactor * Math.min(orb1.opacity, orb2.opacity) * lineIntensity;
-          
+
           ctx.globalAlpha = opacityPulse;
           ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 1)`;
-          
+
           // Line width exponential: thin at low, thick at high
           ctx.lineWidth = 0.3 + lineIntensity * 3;
           ctx.shadowBlur = 3 + lineIntensity * 18;
           ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${lineIntensity * 0.7})`;
-          
+
           ctx.beginPath();
           ctx.moveTo(orb1.x, orb1.y);
           ctx.lineTo(orb2.x, orb2.y);
@@ -984,7 +1128,7 @@
         }
       }
     }
-    
+
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
   }
@@ -1031,13 +1175,13 @@
 
     function animate(currentTime) {
       animationId = requestAnimationFrame(animate);
-      
+
       // Throttle to 30 FPS
       const deltaTime = currentTime - lastFrameTime;
       if (deltaTime < frameDelay) return;
-      
+
       lastFrameTime = currentTime - (deltaTime % frameDelay);
-      
+
       const frequencies = analyzeFrequencies();
       updateVisuals(frequencies);
     }
@@ -1248,12 +1392,13 @@
     console.log('[Living BG] Starting...');
     injectStyles();
     createBackgroundElement();
+    createToggleSwitch();
 
     // Initialize canvas for lines
     linesCanvas = document.getElementById('living-bg-lines');
     if (linesCanvas) {
       linesContext = linesCanvas.getContext('2d');
-      
+
       // Handle window resize
       window.addEventListener('resize', () => {
         linesCanvas.width = window.innerWidth;
@@ -1261,19 +1406,22 @@
       });
     }
 
-    // Try to connect to audio
-    setTimeout(connectAudio, 2000);
+    // === DEFAULT STATE: DISABLED ===
+    // Hide the background element initially
+    const bg = document.getElementById('living-bg');
+    if (bg) {
+      bg.style.display = 'none';
+    }
 
-    // Watch for song changes
+    // Setup interaction handler for audio context (will connect when enabled)
+    setupInteractionHandler();
+
+    // Watch for song changes (for color extraction when enabled)
     setTimeout(() => {
-      extractDominantColor();
       watchSongChanges();
     }, 3000);
 
-    // Setup interaction handler for audio context
-    setupInteractionHandler();
-
-    console.log('[Living BG] Ready! Click anywhere to activate audio visualization.');
+    console.log('[Living BG] Ready! Toggle switch is in the top-right corner.');
   }
 
   // Start
