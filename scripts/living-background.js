@@ -1542,23 +1542,25 @@
         }
 
         // Check like/dislike status
-        const likeButton = document.querySelector('.like.ytmusic-like-button-renderer, #like-button-renderer');
-        const dislikeButton = document.querySelector('.dislike.ytmusic-like-button-renderer, #dislike-button-renderer');
-
         let isLiked = false;
         let isDisliked = false;
 
-        if (likeButton) {
-          // Check if like button is active (aria-pressed="true" or has specific class)
-          isLiked = likeButton.getAttribute('aria-pressed') === 'true' ||
-            likeButton.classList.contains('style-default-active') ||
-            likeButton.querySelector('[aria-pressed="true"]') !== null;
-        }
+        // Find the like button renderer in the player bar
+        const playerBar = document.querySelector('ytmusic-player-bar');
+        if (playerBar) {
+          const likeButtonRenderer = playerBar.querySelector('ytmusic-like-button-renderer');
+          if (likeButtonRenderer) {
+            // Check the like-status attribute
+            const likeStatus = likeButtonRenderer.getAttribute('like-status');
+            console.log('[Mini Player] Like status:', likeStatus);
 
-        if (dislikeButton) {
-          isDisliked = dislikeButton.getAttribute('aria-pressed') === 'true' ||
-            dislikeButton.classList.contains('style-default-active') ||
-            dislikeButton.querySelector('[aria-pressed="true"]') !== null;
+            if (likeStatus === 'LIKE') {
+              isLiked = true;
+            } else if (likeStatus === 'DISLIKE') {
+              isDisliked = true;
+            }
+            // INDIFFERENT means neither liked nor disliked
+          }
         }
 
         window.ytMusicApp.send('track-info-update', {

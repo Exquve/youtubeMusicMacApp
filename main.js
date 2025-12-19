@@ -180,9 +180,36 @@ function setupMiniPlayerIPC() {
 
   // Handle mini player controls
   ipcMain.on('mini-player-control', (event, action) => {
+    // Handle close first
     if (action === 'close') {
       if (miniPlayerWindow) {
         miniPlayerWindow.close();
+      }
+      return;
+    }
+
+    // Handle seek action (object with action and percent)
+    if (typeof action === 'object' && action.action === 'seek') {
+      if (mainWindow) {
+        const percent = action.percent;
+        mainWindow.webContents.executeJavaScript(`
+          (function() {
+            const progressBar = document.querySelector('#progress-bar');
+            if (progressBar) {
+              const rect = progressBar.getBoundingClientRect();
+              const x = rect.left + (rect.width * ${percent} / 100);
+              const y = rect.top + rect.height / 2;
+              
+              const mousedown = new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y });
+              const mouseup = new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y });
+              const click = new MouseEvent('click', { bubbles: true, clientX: x, clientY: y });
+              
+              progressBar.dispatchEvent(mousedown);
+              progressBar.dispatchEvent(mouseup);
+              progressBar.dispatchEvent(click);
+            }
+          })();
+        `);
       }
       return;
     }

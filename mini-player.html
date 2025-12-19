@@ -97,9 +97,12 @@
     const closeBtn = document.getElementById('close-btn');
     const likeBtn = document.getElementById('like-btn');
     const dislikeBtn = document.getElementById('dislike-btn');
+    const progressBar = document.querySelector('.progress-bar');
     const progressFill = document.getElementById('progress-fill');
     const timeCurrent = document.getElementById('time-current');
     const timeTotal = document.getElementById('time-total');
+
+    let isDragging = false;
 
     // Update player info
     ipcRenderer.on('player-update', (event, data) => {
@@ -124,7 +127,7 @@
       if (data.totalTime !== undefined) {
         timeTotal.textContent = data.totalTime;
       }
-      if (data.progress !== undefined) {
+      if (data.progress !== undefined && !isDragging) {
         progressFill.style.width = data.progress + '%';
       }
 
@@ -177,6 +180,43 @@
 
     closeBtn.addEventListener('click', () => {
       ipcRenderer.send('mini-player-control', 'close');
+    });
+
+    // Progress bar seek functionality
+    const getSeekPercent = (e) => {
+      const rect = progressBar.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+      return percent;
+    };
+
+    progressBar.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      progressBar.classList.add('dragging');
+      const percent = getSeekPercent(e);
+      progressFill.style.width = percent + '%';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const percent = getSeekPercent(e);
+      progressFill.style.width = percent + '%';
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      progressBar.classList.remove('dragging');
+      const percent = getSeekPercent(e);
+      ipcRenderer.send('mini-player-control', { action: 'seek', percent: percent });
+    });
+
+    // Click to seek (when not dragging)
+    progressBar.addEventListener('click', (e) => {
+      if (isDragging) return;
+      const percent = getSeekPercent(e);
+      progressFill.style.width = percent + '%';
+      ipcRenderer.send('mini-player-control', { action: 'seek', percent: percent });
     });
 
     // Request initial state

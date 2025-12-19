@@ -102,19 +102,55 @@ body {
 
 .progress-bar {
   flex: 1;
-  height: 3px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
+  border-radius: 3px;
+  overflow: visible;
   cursor: pointer;
+  position: relative;
+  transition: height 0.15s ease;
+}
+
+.progress-bar:hover {
+  height: 6px;
+}
+
+.progress-bar:hover .progress-fill::after {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .progress-fill {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, #ff4d4d, #ff6b6b);
-  border-radius: 2px;
-  transition: width 0.1s linear;
+  border-radius: 3px;
+  transition: width 0.05s linear;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.progress-bar.dragging .progress-fill {
+  transition: none;
+}
+
+.progress-bar.dragging .progress-fill::after {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
 }
 
 /* Controls */
