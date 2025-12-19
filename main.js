@@ -234,12 +234,30 @@ function setupMiniPlayerIPC() {
         break;
       case 'like':
         mainWindow.webContents.executeJavaScript(`
-          document.querySelector('.like.ytmusic-like-button-renderer button, #like-button-renderer button, .like-button-renderer-like-button')?.click();
+          (function() {
+            const playerBar = document.querySelector('ytmusic-player-bar');
+            if (playerBar) {
+              const likeRenderer = playerBar.querySelector('ytmusic-like-button-renderer');
+              if (likeRenderer) {
+                const likeBtn = likeRenderer.querySelector('.like button, #button-shape-like button, tp-yt-paper-icon-button.like');
+                if (likeBtn) likeBtn.click();
+              }
+            }
+          })();
         `);
         break;
       case 'dislike':
         mainWindow.webContents.executeJavaScript(`
-          document.querySelector('.dislike.ytmusic-like-button-renderer button, #dislike-button-renderer button, .like-button-renderer-dislike-button')?.click();
+          (function() {
+            const playerBar = document.querySelector('ytmusic-player-bar');
+            if (playerBar) {
+              const likeRenderer = playerBar.querySelector('ytmusic-like-button-renderer');
+              if (likeRenderer) {
+                const dislikeBtn = likeRenderer.querySelector('.dislike button, #button-shape-dislike button, tp-yt-paper-icon-button.dislike');
+                if (dislikeBtn) dislikeBtn.click();
+              }
+            }
+          })();
         `);
         break;
     }
